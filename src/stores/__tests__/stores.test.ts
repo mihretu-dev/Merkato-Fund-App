@@ -77,6 +77,75 @@ describe('Zustand Stores Test Suite', () => {
       assert.equal(useContributionStore.getState().paidToday, true);
       assert.equal(useContributionStore.getState().contributions.length, 15);
     });
+
+    it('records contribution exactly once and updates all stores consistently', async () => {
+      const initialUser = useUserStore.getState().currentUser;
+      const initialStreak = initialUser.activeStreakDays;
+      const initialBalance = initialUser.simulatedWalletBalanceETB;
+
+      const result = await useContributionStore
+        .getState()
+        .submitDailyContribution(initialUser.id, 'cbe_birr', 50);
+
+      // Ledger updated
+      assert.equal(useContributionStore.getState().contributions.length, 15);
+      assert.equal(useContributionStore.getState().contributions[0].channel, 'cbe_birr');
+      assert.equal(useContributionStore.getState().paidToday, true);
+
+      // User store updated
+      const updatedUser = useUserStore.getState().currentUser;
+      assert.equal(updatedUser.activeStreakDays, initialStreak + 1);
+      assert.equal(updatedUser.simulatedWalletBalanceETB, initialBalance - 50);
+      assert.equal(updatedUser.totalContributedETB, initialUser.totalContributedETB + 50);
+
+      // Draw ticket issued in useDrawStore
+      const tickets = useDrawStore.getState().userTickets;
+      const hasTicket = tickets.some((t) => t.ticketNumber === result.ticket.ticketNumber);
+      assert.ok(hasTicket, 'Draw ticket should be registered in useDrawStore');
+    });
+
+    it('prevents duplicate contribution on the same calendar day', async () => {
+      const user = useUserStore.getState().currentUser;
+
+      // First contribution succeeds
+      await useContributionStore.getState().submitDailyContribution(user.id, 'telebirr', 50);
+      assert.equal(useContributionStore.getState().paidToday, true);
+
+      // Second contribution rejected
+      await assert.rejects(
+        () => useContributionStore.getState().submitDailyContribution(user.id, 'telebirr', 50),
+        /User has already contributed for today/
+      );
+
+      // Ensure ledger count did not increment twice
+      assert.equal(useContributionStore.getState().contributions.length, 15);
+    });
+
+    it('handles failed contribution without corrupting state', async () => {
+      const initialCount = useContributionStore.getState().contributions.length;
+
+      await assert.rejects(
+        () => useContributionStore.getState().submitDailyContribution('nonexistent-user', 'telebirr', 50),
+        /User not found/
+      );
+
+      assert.equal(useContributionStore.getState().contributions.length, initialCount);
+      assert.equal(useContributionStore.getState().paidToday, false);
+      assert.equal(useContributionStore.getState().isLoading, false);
+    });
+
+    it('supports all valid simulated payment channels (telebirr, cbe_birr, awash_birr)', async () => {
+      const user = useUserStore.getState().currentUser;
+
+      // awash_birr channel test
+      const res = await useContributionStore
+        .getState()
+        .submitDailyContribution(user.id, 'awash_birr', 50);
+
+      assert.equal(res.contribution.channel, 'awash_birr');
+      assert.equal(res.contribution.status, 'completed');
+      assert.equal(res.contribution.isSimulated, true);
+    });
   });
 
   describe('3. useDrawStore', () => {

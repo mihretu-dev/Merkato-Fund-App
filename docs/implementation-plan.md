@@ -114,20 +114,20 @@ gantt
 
 ---
 
-### Day 4: Daily 50 ETB Contribution Flow & Simulated Payment Gateway
-- **Objective**: Allow users to experience the daily micro-contribution and simulated checkout.
+### Day 4: Daily 50 ETB Contribution Flow & Simulated Payment Gateway (COMPLETE & VERIFIED)
+- **Objective**: Deliver a complete, deliberate, interactive demo contribution flow for the proposed 50 ETB daily payment.
 - **Deliverables**:
   - **Contribution Screen (`app/(tabs)/contribute.tsx`)**:
-    - Visual streak tracker and payment calendar.
-    - Contribution ledger with historical transaction receipts.
-    - Explanation banner on where the 50 ETB goes (Pool accumulation).
-  - **Payment Checkout Modal (`app/modals/payment-checkout.tsx`)**:
-    - Realistic simulation of Ethiopian mobile payment channels:
-      - **Telebirr** (USSD push simulation).
-      - **CBE Birr** (Commercial Bank of Ethiopia debit).
-      - **Awash / Dashen / Amole**.
-    - Simulated loading spinner, PIN entry mockup, and animated success screen.
-    - Auto-generates a unique Draw Ticket for today's draw upon payment completion.
+    - Daily 50 ETB amount and status display (Payment Due vs Paid for Today).
+    - Simulated Ethiopian payment channels: Telebirr (USSD push), CBE Birr (Commercial Bank debit), Awash Birr (digital micro-payment).
+    - Deliberate review and confirmation modal with demo transaction reference preview (`DEMO-TX-20261017-PREVIEW`).
+    - Double-submission guard (`isSubmitting`) preventing rapid multi-taps.
+    - Success celebration receipt displaying issued algorithmic draw ticket (`MF-20261017-xxxx`), updated streak (+1), and navigation shortcuts.
+    - Duplicate prevention: blocks repeated payments when `paidToday` is true.
+    - Historical contribution ledger with deterministic records for active persona.
+    - Prominent simulation disclaimers: no real banking integration or fiat currency collection.
+  - **Automated Tests (`src/stores/__tests__/stores.test.ts`)**:
+    - Expanded test suite to **59 passing unit tests** across 19 suites. Verified single record creation, multi-store synchronization (`paidToday`, streak, wallet balance, draw ticket), duplicate prevention, channel support, and state integrity on failure.
 
 ---
 

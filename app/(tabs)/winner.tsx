@@ -16,7 +16,9 @@ import {
   Text,
   SafeAreaView,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { colors, spacing, typography, radii } from '@/src/theme/tokens';
 import {
@@ -31,10 +33,12 @@ import {
 
 import { useUserStore } from '@/src/stores/useUserStore';
 import { useWinnerStore } from '@/src/stores/useWinnerStore';
+import { useDrawStore } from '@/src/stores/useDrawStore';
 import { useDemoConfigStore } from '@/src/stores/useDemoConfigStore';
 import { formatETB } from '@/src/domain/calculations/currency';
 
 export default function WinnerScreen() {
+  const router = useRouter();
   const currentUser = useUserStore((s) => s.currentUser);
 
   const escrowAccount = useWinnerStore((s) => s.escrowAccount);
@@ -43,6 +47,10 @@ export default function WinnerScreen() {
   const isLoading = useWinnerStore((s) => s.isLoading);
   const recordRepayment = useWinnerStore((s) => s.recordRepayment);
   const replenishBuffer = useWinnerStore((s) => s.replenishBuffer);
+
+  const activeDraw = useDrawStore((s) => s.activeDraw);
+  const lastDrawResult = useDrawStore((s) => s.lastDrawResult);
+  const resetActiveDraw = useDrawStore((s) => s.resetActiveDraw);
 
   const config = useDemoConfigStore((s) => s.config);
   const repaymentDailyModel = useDemoConfigStore((s) => s.repaymentDailyModel);
@@ -113,6 +121,36 @@ export default function WinnerScreen() {
           <DemoBadge label="FINANCIAL DEMO" />
         </View>
 
+        {/* Mandatory Simulated Winner Disclaimer */}
+        <Card style={styles.winnerNoticeCard} variant="surface">
+          <View style={styles.winnerNoticeHeader}>
+            <Text style={styles.winnerNoticeIcon}>🛡️</Text>
+            <Text style={styles.winnerNoticeTitle}>SIMULATED WINNER — NO MONEY AWARDED</Text>
+          </View>
+          <Text style={styles.winnerNoticeBody}>
+            The 1,000,000 ETB payout and 22% CBE escrow account shown below are purely synthetic models for concept evaluation. Under no circumstances does this represent an actual bank deposit, verified lottery payout, or liquid funds.
+          </Text>
+        </Card>
+
+        {/* Live Draw Winner Banner if completed */}
+        {(activeDraw?.status === 'completed' || lastDrawResult) && (
+          <Card style={styles.todayWinnerBanner} variant="elevated">
+            <View style={styles.todayWinnerHeader}>
+              <Text style={styles.todayWinnerIcon}>🎉</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.todayWinnerSubtitle}>TODAY’S DRAW SELECTION</Text>
+                <Text style={styles.todayWinnerName}>
+                  Winner: {activeDraw?.winnerName || lastDrawResult?.winner.fullName || 'Demo Winner'}
+                </Text>
+                <Text style={styles.todayWinnerTicket}>
+                  Winning Ticket: {activeDraw?.winningTicketNumber || lastDrawResult?.winningTicket.ticketNumber}
+                </Text>
+              </View>
+              <StatusPill status="healthy" label="DRAW WINNER" size="small" />
+            </View>
+          </Card>
+        )}
+
         {!isWinnerPersona && (
           <View style={styles.personaWarning}>
             <Text style={styles.personaWarningText}>
@@ -133,7 +171,7 @@ export default function WinnerScreen() {
             <View>
               <Text style={styles.bankName}>Commercial Bank of Ethiopia (CBE)</Text>
               <Text style={styles.accountNumber}>
-                ESCROW A/C: {escrowAccount?.escrowAccountNumber || '1000-ESC-8392-ETB'}
+                ESCROW A/C: {escrowAccount?.escrowAccountNumber?.startsWith('DEMO-') ? escrowAccount.escrowAccountNumber : `DEMO-${escrowAccount?.escrowAccountNumber || 'CBE-ESC-8392'}`}
               </Text>
             </View>
             <StatusPill status="locked" label="BLOCKED 6-MO" />
@@ -312,6 +350,37 @@ export default function WinnerScreen() {
             onPress={handleReplenishBuffer}
             style={{ marginTop: spacing.md }}
           />
+        </Card>
+
+        {/* 5. Evaluator Navigation Controls */}
+        <Card style={styles.navCard} variant="outline">
+          <View style={styles.cardHeader}>
+            <Text style={styles.navTitle}>🛠️ Evaluator Shortcuts</Text>
+            <StatusPill status="info" label="CONTROLS" size="small" />
+          </View>
+          <Text style={styles.navSubtitle}>
+            Return to the draw room to simulate another draw, or reset the active draw instance.
+          </Text>
+
+          <View style={styles.navButtonsRow}>
+            <AppButton
+              title="← Return to Draw Room"
+              variant="primary"
+              onPress={() => router.push('/(tabs)/draw')}
+              style={{ flex: 1 }}
+            />
+            {activeDraw?.status === 'completed' && (
+              <AppButton
+                title="Reset Active Draw"
+                variant="outline"
+                onPress={async () => {
+                  await resetActiveDraw('draw-20261017');
+                  Alert.alert('Draw Reset', 'Today’s active draw has been reset to SCHEDULED state.');
+                }}
+                style={{ flex: 1 }}
+              />
+            )}
+          </View>
         </Card>
 
         <DisclaimerNotice />
@@ -580,5 +649,88 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.accentGoldLight,
     lineHeight: 15,
+  },
+  winnerNoticeCard: {
+    backgroundColor: '#1E1408',
+    borderColor: 'rgba(217, 162, 59, 0.4)',
+    borderWidth: 1.5,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+  },
+  winnerNoticeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: 4,
+  },
+  winnerNoticeIcon: {
+    fontSize: 18,
+  },
+  winnerNoticeTitle: {
+    ...typography.h3,
+    fontSize: 13,
+    color: colors.accentGold,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  winnerNoticeBody: {
+    ...typography.caption,
+    color: colors.accentGoldLight,
+    lineHeight: 16,
+    fontSize: 11,
+  },
+  todayWinnerBanner: {
+    backgroundColor: '#1E170A',
+    borderColor: colors.accentGold,
+    borderWidth: 1.5,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+  },
+  todayWinnerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  todayWinnerIcon: {
+    fontSize: 28,
+  },
+  todayWinnerSubtitle: {
+    ...typography.label,
+    fontSize: 9,
+    color: colors.accentGold,
+    letterSpacing: 0.8,
+  },
+  todayWinnerName: {
+    ...typography.h3,
+    color: colors.dark.textPrimary,
+    fontSize: 15,
+    marginTop: 2,
+  },
+  todayWinnerTicket: {
+    ...typography.caption,
+    color: colors.accentGold,
+    fontFamily: 'monospace',
+    fontSize: 11,
+    marginTop: 1,
+  },
+  navCard: {
+    marginBottom: spacing.md,
+    backgroundColor: '#0F172A',
+    borderColor: colors.dark.surfaceBorder,
+  },
+  navTitle: {
+    ...typography.h3,
+    color: colors.dark.textPrimary,
+    fontSize: 14,
+  },
+  navSubtitle: {
+    ...typography.caption,
+    color: colors.dark.textSecondary,
+    marginBottom: spacing.md,
+    lineHeight: 16,
+  },
+  navButtonsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
 });

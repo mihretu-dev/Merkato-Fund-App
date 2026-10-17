@@ -107,17 +107,66 @@ describe('MockMerkatoService Test Suite', () => {
   });
 
   describe('3. Demonstration Draw Simulation', () => {
-    it('executes a demonstration draw with required demonstration labels', async () => {
-      const result = await service.simulateDailyDraw();
+    it('prevents draw execution when zero eligible tickets exist', async () => {
+      await assert.rejects(
+        () => service.simulateDailyDraw('draw-20261017'),
+        /zero eligible tickets/
+      );
+    });
+
+    it('executes a demonstration draw with eligible ticket and required labels', async () => {
+      // First issue an eligible ticket via contribution
+      await service.submitContribution({
+        userId: 'user-dawit-001',
+        amountETB: 50,
+        channel: 'telebirr',
+      });
+
+      const result = await service.simulateDailyDraw('draw-20261017');
 
       assert.equal(result.isDemonstrationOnly, true);
       assert.equal(result.draw.status, 'completed');
       assert.ok(result.draw.winningTicketNumber);
       assert.ok(result.winningTicket.isWinningTicket);
-      assert.ok(result.winner.fullName);
+      assert.equal(result.winner.fullName, 'Dawit Haile');
+      assert.equal(result.winner.id, 'user-dawit-001');
 
       const poolStats = await service.getPoolStatistics();
       assert.ok(poolStats.totalDrawsCompleted >= 77);
+    });
+
+    it('prevents accidental duplicate execution on the same draw instance', async () => {
+      await service.submitContribution({
+        userId: 'user-dawit-001',
+        amountETB: 50,
+        channel: 'telebirr',
+      });
+
+      // First run succeeds
+      await service.simulateDailyDraw('draw-20261017');
+
+      // Second run rejected
+      await assert.rejects(
+        () => service.simulateDailyDraw('draw-20261017'),
+        /already been completed/
+      );
+    });
+
+    it('allows replaying draw after explicit resetActiveDraw', async () => {
+      await service.submitContribution({
+        userId: 'user-dawit-001',
+        amountETB: 50,
+        channel: 'telebirr',
+      });
+
+      await service.simulateDailyDraw('draw-20261017');
+      const resetDraw = await service.resetActiveDraw('draw-20261017');
+      assert.equal(resetDraw.status, 'scheduled');
+      assert.equal(resetDraw.winningTicketNumber, undefined);
+
+      // Re-run succeeds after reset
+      const replay = await service.simulateDailyDraw('draw-20261017');
+      assert.equal(replay.draw.status, 'completed');
     });
   });
 

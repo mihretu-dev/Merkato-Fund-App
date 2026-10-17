@@ -14,6 +14,7 @@ interface DrawState {
   activeDraw: DailyDraw | null;
   drawHistory: DailyDraw[];
   userTickets: DrawTicket[];
+  eligibleDrawTickets: DrawTicket[];
   lastDrawResult: ExecuteDrawResult | null;
   isLoading: boolean;
   isDrawing: boolean;
@@ -21,7 +22,9 @@ interface DrawState {
 
   // Actions
   loadDrawData: (userId: string) => Promise<void>;
-  executeDemoDraw: (drawId?: string) => Promise<ExecuteDrawResult>;
+  executeDemoDraw: (drawId?: string, seed?: string) => Promise<ExecuteDrawResult>;
+  addSampleTicket: (userId: string, drawId?: string) => Promise<DrawTicket>;
+  resetActiveDraw: (drawId?: string) => Promise<void>;
   addUserTicket: (ticket: DrawTicket) => void;
   resetDrawStore: () => void;
 }
@@ -30,6 +33,7 @@ export const useDrawStore = create<DrawState>((set, get) => ({
   activeDraw: null,
   drawHistory: [],
   userTickets: [],
+  eligibleDrawTickets: [],
   lastDrawResult: null,
   isLoading: false,
   isDrawing: false,
@@ -41,11 +45,13 @@ export const useDrawStore = create<DrawState>((set, get) => ({
       const active = await mockMerkatoService.getActiveDraw();
       const history = await mockMerkatoService.getDrawHistory();
       const tickets = await mockMerkatoService.getUserTickets(userId);
+      const drawTickets = await mockMerkatoService.getDrawTickets(active.id);
 
       set({
         activeDraw: active,
         drawHistory: history,
         userTickets: tickets,
+        eligibleDrawTickets: drawTickets,
         isLoading: false,
       });
     } catch (err) {
@@ -54,19 +60,32 @@ export const useDrawStore = create<DrawState>((set, get) => ({
     }
   },
 
-  executeDemoDraw: async (drawId?: string) => {
+  executeDemoDraw: async (drawId?: string, seed?: string) => {
     set({ isDrawing: true, error: null });
     try {
-      const result = await mockMerkatoService.simulateDailyDraw(drawId);
+      const result = await mockMerkatoService.simulateDailyDraw(drawId, seed);
       const history = await mockMerkatoService.getDrawHistory();
       const active = await mockMerkatoService.getActiveDraw();
+      const drawTickets = await mockMerkatoService.getDrawTickets(result.draw.id);
 
       set((state) => ({
         lastDrawResult: result,
         drawHistory: history,
         activeDraw: active,
+        eligibleDrawTickets: drawTickets,
         isDrawing: false,
       }));
+
+      // Synchronously notify user and winner stores
+      try {
+        const { useUserStore } = await import('./useUserStore');
+        const { useWinnerStore } = await import('./useWinnerStore');
+
+        useUserStore.getState().updateCurrentUser(result.winner);
+        await useWinnerStore.getState().loadWinnerData(result.winner.id);
+      } catch {
+        // Safe fallback in tests
+      }
 
       return result;
     } catch (err) {
@@ -76,9 +95,53 @@ export const useDrawStore = create<DrawState>((set, get) => ({
     }
   },
 
+  addSampleTicket: async (userId: string, drawId?: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const ticket = await mockMerkatoService.addSampleTicket(userId, drawId);
+      const active = await mockMerkatoService.getActiveDraw();
+      const drawTickets = await mockMerkatoService.getDrawTickets(active.id);
+
+      set((state) => ({
+        userTickets: [ticket, ...state.userTickets],
+        eligibleDrawTickets: drawTickets,
+        activeDraw: active,
+        isLoading: false,
+      }));
+
+      return ticket;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to add sample ticket';
+      set({ error: msg, isLoading: false });
+      throw err;
+    }
+  },
+
+  resetActiveDraw: async (drawId?: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const resetDraw = await mockMerkatoService.resetActiveDraw(drawId);
+      const history = await mockMerkatoService.getDrawHistory();
+      const drawTickets = await mockMerkatoService.getDrawTickets(resetDraw.id);
+
+      set({
+        activeDraw: resetDraw,
+        drawHistory: history,
+        eligibleDrawTickets: drawTickets,
+        lastDrawResult: null,
+        isLoading: false,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to reset active draw';
+      set({ error: msg, isLoading: false });
+      throw err;
+    }
+  },
+
   addUserTicket: (ticket: DrawTicket) => {
     set((state) => ({
       userTickets: [ticket, ...state.userTickets],
+      eligibleDrawTickets: [ticket, ...state.eligibleDrawTickets],
     }));
   },
 
@@ -87,6 +150,7 @@ export const useDrawStore = create<DrawState>((set, get) => ({
       activeDraw: null,
       drawHistory: [],
       userTickets: [],
+      eligibleDrawTickets: [],
       lastDrawResult: null,
       isLoading: false,
       isDrawing: false,

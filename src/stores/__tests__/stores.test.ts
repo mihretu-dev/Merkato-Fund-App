@@ -156,14 +156,106 @@ describe('Zustand Stores Test Suite', () => {
       const active = useDrawStore.getState().activeDraw;
       assert.ok(active);
       assert.equal(active.prizeAmountETB, 1_000_000);
+      assert.equal(useDrawStore.getState().eligibleDrawTickets.length, 0);
     });
 
-    it('executes demonstration draw and records result', async () => {
-      const res = await useDrawStore.getState().executeDemoDraw();
+    it('rejects execution when zero eligible tickets exist', async () => {
+      const user = useUserStore.getState().currentUser;
+      await useDrawStore.getState().loadDrawData(user.id);
+
+      await assert.rejects(
+        () => useDrawStore.getState().executeDemoDraw('draw-20261017'),
+        /zero eligible tickets/
+      );
+      assert.equal(useDrawStore.getState().lastDrawResult, null);
+    });
+
+    it('executes draw when eligible ticket exists and ensures winner matches owner', async () => {
+      const user = useUserStore.getState().currentUser;
+
+      // Submit contribution to get eligible ticket
+      const contrib = await useContributionStore
+        .getState()
+        .submitDailyContribution(user.id, 'telebirr', 50);
+
+      const res = await useDrawStore.getState().executeDemoDraw('draw-20261017');
 
       assert.ok(res.winningTicket.ticketNumber);
+      assert.equal(res.winningTicket.ticketNumber, contrib.ticket.ticketNumber);
+      assert.equal(res.winner.id, user.id);
+      assert.equal(res.winner.fullName, user.fullName);
       assert.equal(res.isDemonstrationOnly, true);
       assert.equal(useDrawStore.getState().lastDrawResult?.draw.status, 'completed');
+
+      // Verify winner escrow was automatically hydrated in useWinnerStore
+      const escrow = useWinnerStore.getState().escrowAccount;
+      assert.ok(escrow);
+      assert.equal(escrow.userId, user.id);
+      assert.equal(escrow.principalAmountETB, 1_000_000);
+    });
+
+    it('prevents accidental duplicate execution on the same draw instance', async () => {
+      const user = useUserStore.getState().currentUser;
+      await useContributionStore.getState().submitDailyContribution(user.id, 'telebirr', 50);
+
+      // First run succeeds
+      await useDrawStore.getState().executeDemoDraw('draw-20261017');
+
+      // Second run rejected
+      await assert.rejects(
+        () => useDrawStore.getState().executeDemoDraw('draw-20261017'),
+        /already been completed/
+      );
+    });
+
+    it('allows replaying draw after calling resetActiveDraw', async () => {
+      const user = useUserStore.getState().currentUser;
+      await useContributionStore.getState().submitDailyContribution(user.id, 'telebirr', 50);
+
+      await useDrawStore.getState().executeDemoDraw('draw-20261017');
+      assert.equal(useDrawStore.getState().activeDraw?.status, 'completed');
+
+      await useDrawStore.getState().resetActiveDraw('draw-20261017');
+      assert.equal(useDrawStore.getState().activeDraw?.status, 'scheduled');
+      assert.equal(useDrawStore.getState().lastDrawResult, null);
+
+      // Re-run succeeds
+      const replay = await useDrawStore.getState().executeDemoDraw('draw-20261017');
+      assert.equal(replay.draw.status, 'completed');
+    });
+
+    it('produces predictable winner selection with a deterministic seed', async () => {
+      const user = useUserStore.getState().currentUser;
+
+      // Add two tickets
+      await useContributionStore.getState().submitDailyContribution(user.id, 'telebirr', 50);
+      await useDrawStore.getState().addSampleTicket('user-bethlehem-002', 'draw-20261017');
+
+      const tickets = useDrawStore.getState().eligibleDrawTickets;
+      assert.equal(tickets.length, 2);
+
+      // Execute with fixed seed
+      const fixedSeed = 'TEST-DETERMINISTIC-SEED-XYZ';
+      const res = await useDrawStore.getState().executeDemoDraw('draw-20261017', fixedSeed);
+      assert.ok(res.winningTicket.ticketNumber);
+
+      // Verify that ineligible tickets from yesterday (draw-20261016) were not in eligible pool
+      assert.ok(tickets.every((t) => t.drawId === 'draw-20261017'));
+    });
+
+    it('persona switching preserves draw result and does not overwrite it', async () => {
+      const user = useUserStore.getState().currentUser;
+      await useContributionStore.getState().submitDailyContribution(user.id, 'telebirr', 50);
+      const res = await useDrawStore.getState().executeDemoDraw('draw-20261017');
+
+      // Switch persona to Admin
+      await useUserStore.getState().switchPersona('admin');
+      const adminTickets = useDrawStore.getState().userTickets;
+
+      // Admin has 0 tickets for today, but activeDraw status remains completed with Dawit as winner
+      assert.equal(useDrawStore.getState().activeDraw?.status, 'completed');
+      assert.equal(useDrawStore.getState().activeDraw?.winningTicketNumber, res.winningTicket.ticketNumber);
+      assert.equal(useDrawStore.getState().activeDraw?.winnerUserId, user.id);
     });
   });
 

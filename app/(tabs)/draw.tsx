@@ -1,19 +1,28 @@
 /**
- * Merkato Fund — Algorithmic Draw Room & Tickets Screen
+ * Merkato Fund — Algorithmic Draw Room & Simulator Screen
  *
- * Displays live draw parameters (1M ETB prize, participants, SHA-256 transparency seed),
- * active user entry tickets, recent draw history, and an interactive demonstration draw simulator.
+ * Implements the Day 5 draw simulation & winner announcement:
+ * 1. Explicit notice: "DEMO DRAW — NOT A REAL LOTTERY" (No NLA certification claim).
+ * 2. Scheduled draw countdown & parameters (20:00:00 EAT model assumption).
+ * 3. Shows eligible tickets currently loaded for today's draw with owner names.
+ * 4. Safe empty state when 0 eligible tickets exist with CTAs to contribute or seed sample tickets.
+ * 5. Deliberate confirmation modal before running the demo draw.
+ * 6. Prevents duplicate execution of completed draws with replay/reset option.
+ * 7. Celebration winner announcement modal linking directly to the Winner Hub.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   ScrollView,
   View,
   Text,
   SafeAreaView,
+  TouchableOpacity,
+  Modal,
   Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { colors, spacing, typography, radii } from '@/src/theme/tokens';
 import {
@@ -29,172 +38,332 @@ import {
 import { useUserStore } from '@/src/stores/useUserStore';
 import { useDrawStore } from '@/src/stores/useDrawStore';
 import { formatETB } from '@/src/domain/calculations/currency';
+import { DrawTicket } from '@/src/domain/types';
+import { ExecuteDrawResult } from '@/src/services/interfaces/IMerkatoService';
 
 export default function DrawRoomScreen() {
+  const router = useRouter();
+
   const currentUser = useUserStore((s) => s.currentUser);
+  const availablePersonas = useUserStore((s) => s.availablePersonas);
 
   const activeDraw = useDrawStore((s) => s.activeDraw);
   const drawHistory = useDrawStore((s) => s.drawHistory);
-  const userTickets = useDrawStore((s) => s.userTickets);
+  const eligibleDrawTickets = useDrawStore((s) => s.eligibleDrawTickets);
   const isDrawing = useDrawStore((s) => s.isDrawing);
   const lastDrawResult = useDrawStore((s) => s.lastDrawResult);
+  const loadDrawData = useDrawStore((s) => s.loadDrawData);
   const executeDemoDraw = useDrawStore((s) => s.executeDemoDraw);
+  const addSampleTicket = useDrawStore((s) => s.addSampleTicket);
+  const resetActiveDraw = useDrawStore((s) => s.resetActiveDraw);
 
-  const handleSimulateDraw = async () => {
-    try {
-      const res = await executeDemoDraw();
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [showWinnerModal, setShowWinnerModal] = useState<boolean>(false);
+  const [activeWinnerData, setActiveWinnerData] = useState<ExecuteDrawResult | null>(null);
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      loadDrawData(currentUser.id);
+    }
+  }, [currentUser?.id]);
+
+  // Determine eligible tickets specifically for the active scheduled draw
+  const activeDrawId = activeDraw?.id || 'draw-20261017';
+  const eligibleTickets = eligibleDrawTickets.filter((t) => t.drawId === activeDrawId);
+  const isDrawCompleted = activeDraw?.status === 'completed';
+
+  // Helper to resolve ticket owner persona name
+  const getTicketOwnerName = (ticket: DrawTicket): string => {
+    const owner = Object.values(availablePersonas).find((u) => u.id === ticket.userId);
+    if (owner) return `${owner.fullName} (${owner.role})`;
+    return `User ${ticket.userId}`;
+  };
+
+  // Trigger confirmation modal
+  const handleOpenConfirm = () => {
+    if (isDrawCompleted) {
       Alert.alert(
-        '🎉 Demonstration Draw Executed!',
-        `Winning Ticket: ${res.winningTicket.ticketNumber}\nWinner: ${res.winner.fullName}\n\nNotice: This is a client-side demonstration simulation for review purposes only.`
+        'Draw Already Completed',
+        'Tonight’s draw has already been executed. Use the Replay / Reset action below to run another simulation.'
       );
+      return;
+    }
+    if (eligibleTickets.length === 0) {
+      Alert.alert(
+        'Zero Eligible Tickets',
+        'No eligible tickets are registered for tonight’s draw. Complete a 50 ETB contribution or seed a sample ticket.'
+      );
+      return;
+    }
+    setShowConfirmModal(true);
+  };
+
+  // Execute demo draw
+  const handleExecuteDraw = async () => {
+    setShowConfirmModal(false);
+    try {
+      const res = await executeDemoDraw(activeDrawId);
+      setActiveWinnerData(res as unknown as ExecuteDrawResult);
+      setShowWinnerModal(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Draw simulation failed';
-      Alert.alert('Simulation Error', msg);
+      Alert.alert('Draw Engine Notice', msg);
     }
   };
 
-  const currentDrawTickets = userTickets.filter(
-    (t) => t.drawId === activeDraw?.id || t.drawId === lastDrawResult?.draw.id
-  );
+  // Add sample ticket for testing
+  const handleSeedSample = async () => {
+    try {
+      // Alternate between Dawit and Bethlehem as sample ticket holder
+      const targetUserId = eligibleTickets.length % 2 === 0 ? 'user-dawit-001' : 'user-bethlehem-002';
+      await addSampleTicket(targetUserId, activeDrawId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to seed sample ticket';
+      Alert.alert('Error', msg);
+    }
+  };
+
+  // Replay / reset draw
+  const handleReplayDraw = async () => {
+    try {
+      await resetActiveDraw(activeDrawId);
+      setActiveWinnerData(null);
+      Alert.alert('Draw Reset', 'Today’s draw instance has been reset to SCHEDULED state. You can now replay the draw simulation.');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to reset draw';
+      Alert.alert('Error', msg);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Header */}
+        {/* Top Header */}
         <View style={styles.headerRow}>
           <View>
+            <Text style={styles.amharicHeader}>የቀን 1,000,000 ብር የዕጣ ክፍል</Text>
             <Text style={styles.screenTitle}>Algorithmic Draw Room</Text>
             <Text style={styles.screenSubtitle}>
-              Daily 1,000,000 ETB Algorithmic Selection
+              Daily Algorithmic Selection • Client-Side Prototype
             </Text>
           </View>
-          <DemoBadge label="DEMO SIMULATION" />
+          <DemoBadge label="SIMULATION ONLY" />
         </View>
 
-        {/* Live Draw Overview Card */}
+        {/* Mandatory Prominent Notice */}
+        <Card style={styles.regulatoryCallout} variant="elevated">
+          <View style={styles.regulatoryHeader}>
+            <Text style={styles.regulatoryIcon}>⚖️</Text>
+            <Text style={styles.regulatoryTitle}>DEMO DRAW — NOT A REAL LOTTERY</Text>
+          </View>
+          <Text style={styles.regulatoryText}>
+            This screen simulates client-side deterministic draw selection for architectural evaluation. It is NOT a production-grade lottery, is NOT certified by the Ethiopian National Lottery Administration (NLA), and awards NO real money.
+          </Text>
+        </Card>
+
+        {/* Active Draw Overview Card */}
         <Card style={styles.drawCard} variant="elevated">
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Today's Scheduled Draw</Text>
+            <View>
+              <Text style={styles.cardTitle}>Today's Scheduled Draw</Text>
+              <Text style={styles.cardDate}>Model Cycle: 2026-10-17 • 20:00:00 EAT (Assumption)</Text>
+            </View>
             <StatusPill
-              status={activeDraw?.status === 'completed' ? 'completed' : 'info'}
-              label={activeDraw?.status === 'completed' ? 'DRAW COMPLETED' : 'SCHEDULED • 20:00 EAT'}
+              status={isDrawCompleted ? 'completed' : 'info'}
+              label={isDrawCompleted ? 'DRAW COMPLETED' : 'SCHEDULED • 20:00 EAT'}
             />
           </View>
 
+          {/* Stated Prize */}
           <View style={styles.prizeContainer}>
             <CurrencyDisplay
               amountETB={activeDraw?.prizeAmountETB || 1_000_000}
-              label="Stated Capital Prize"
+              label="Stated Capital Prize (Held in 6-Mo Blocked Escrow)"
               size="lg"
               color={colors.accentGold}
             />
           </View>
 
+          {/* Metrics Grid */}
           <View style={styles.metricsGrid}>
             <MetricTile
-              label="Participants"
+              label="Assumed Pool Base"
               value={(activeDraw?.participantCount || 24850).toLocaleString()}
-              subtitle="Daily contributors"
+              subtitle="Synthetic contributors"
             />
             <MetricTile
-              label="Pool Collected"
+              label="Model Daily Inflow"
               value={formatETB(activeDraw?.poolTotalCollectedETB || 1242500)}
-              subtitle="50 ETB / member"
+              subtitle="50 ETB × 24,850 members"
             />
           </View>
 
-          {/* Demonstration Seed Explanation */}
+          {/* Demonstration Seed Card */}
           <View style={styles.seedBox}>
-            <Text style={styles.seedLabel}>DEMONSTRATION SEED (EXPLANATION OF PROTOTYPE LOGIC)</Text>
+            <View style={styles.seedHeader}>
+              <Text style={styles.seedLabel}>DEMONSTRATION SEED (EXPLANATION OF PROTOTYPE LOGIC)</Text>
+              <StatusPill status="info" label="FNV-1a HASH" size="small" />
+            </View>
             <Text style={styles.seedHash} numberOfLines={1} ellipsizeMode="middle">
               {activeDraw?.hashSeed || '0x7f4b82d399c26a5e1104e6c382b9e4a1932e65d836bc49e17b8f95c249a8e210'}
             </Text>
             <Text style={styles.seedNote}>
-              This SHA-256 seed illustrates how a future provably-fair draw could anchor ticket selection. The current client-side implementation is a local mock demonstration using FNV-1a hashing. It is NOT a production-grade, cryptographic, or independently verified lottery certified by the National Lottery Administration (NLA).
+              This seed illustrates deterministic selection mechanics. True production lotteries require certified Hardware Security Modules (HSM) and NLA-audited randomness.
             </Text>
           </View>
 
-          {/* Draw Action Button */}
-          <AppButton
-            title={isDrawing ? 'Simulating Algorithmic Draw...' : 'Simulate Live Demonstration Draw'}
-            variant="gold"
-            loading={isDrawing}
-            onPress={handleSimulateDraw}
-            style={{ marginTop: spacing.md }}
-          />
+          {/* Draw Trigger Actions */}
+          {isDrawCompleted ? (
+            <View style={styles.completedActionsBox}>
+              <View style={styles.completedBanner}>
+                <Text style={styles.completedBannerIcon}>🏆</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.completedBannerTitle}>Today’s Draw Already Completed</Text>
+                  <Text style={styles.completedBannerDesc}>
+                    Winning Ticket: <Text style={styles.boldGold}>{activeDraw?.winningTicketNumber}</Text> • Winner: <Text style={styles.boldText}>{activeDraw?.winnerName}</Text>
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.completedButtonsRow}>
+                <AppButton
+                  title="Inspect Winner Escrow & Yield Hub →"
+                  variant="gold"
+                  onPress={() => router.push('/(tabs)/winner')}
+                  style={{ flex: 2 }}
+                />
+                <AppButton
+                  title="Replay / Reset Draw"
+                  variant="outline"
+                  onPress={handleReplayDraw}
+                  style={{ flex: 1 }}
+                />
+              </View>
+            </View>
+          ) : (
+            <View style={styles.actionButtonsContainer}>
+              <AppButton
+                title={
+                  isDrawing
+                    ? 'Simulating Algorithmic Selection...'
+                    : eligibleTickets.length === 0
+                    ? 'No Eligible Tickets to Draw'
+                    : `Run Demo Draw (${eligibleTickets.length} Eligible Tickets) →`
+                }
+                variant="gold"
+                loading={isDrawing}
+                disabled={isDrawing || eligibleTickets.length === 0}
+                onPress={handleOpenConfirm}
+                style={{ marginTop: spacing.md }}
+              />
+
+              {eligibleTickets.length === 0 && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Seed synthetic sample ticket for testing"
+                  onPress={handleSeedSample}
+                  style={styles.seedSampleButton}>
+                  <Text style={styles.seedSampleText}>
+                    + Seed Synthetic Sample Ticket (For Evaluator Testing)
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </Card>
 
-        {/* Latest Draw Result Box if simulated */}
-        {lastDrawResult && (
-          <Card style={styles.winnerCard} variant="elevated">
-            <View style={styles.cardHeader}>
-              <Text style={styles.winnerTitle}>🎉 Latest Demonstration Result</Text>
-              <StatusPill status="completed" label="SIMULATED" size="small" />
-            </View>
-
-            <View style={styles.winnerDetails}>
-              <Text style={styles.winnerTicketNumber}>
-                {lastDrawResult.winningTicket.ticketNumber}
-              </Text>
-              <Text style={styles.winnerNameText}>
-                Winner: {lastDrawResult.winner.fullName} ({lastDrawResult.winner.role})
-              </Text>
-              <Text style={styles.winnerMetaText}>
-                Timestamp: {lastDrawResult.draw.completedAt?.replace('T', ' ').slice(0, 19)} EAT
-              </Text>
-              <Text style={styles.winnerDisclaimer}>
-                ⚠️ Client-side demonstration simulation for review and architectural evaluation. This is NOT a certified lottery result or legally binding prize.
-              </Text>
-            </View>
-          </Card>
-        )}
-
-        {/* User's Entry Tickets */}
+        {/* Eligible Tickets for Active Draw Card */}
         <Card style={styles.sectionCard} variant="elevated">
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Your Entry Tickets</Text>
-            <Text style={styles.ticketCountText}>
-              {currentDrawTickets.length} Active for {currentUser.fullName.split(' ')[0]}
-            </Text>
+            <View>
+              <Text style={styles.cardTitle}>Eligible Tickets in Tonight's Pool</Text>
+              <Text style={styles.cardSubtitle}>
+                Eligibility Rule: Verified 50 ETB daily payment for cycle 2026-10-17.
+              </Text>
+            </View>
+            <View style={styles.ticketCountBadge}>
+              <Text style={styles.ticketCountBadgeText}>
+                {eligibleTickets.length} Eligible
+              </Text>
+            </View>
           </View>
 
-          {currentDrawTickets.length > 0 ? (
+          {eligibleTickets.length > 0 ? (
             <View style={styles.ticketList}>
-              {currentDrawTickets.map((t) => (
+              {eligibleTickets.map((t, idx) => (
                 <View
                   key={t.id}
                   style={[
                     styles.ticketRow,
                     t.isWinningTicket && styles.winningTicketRow,
                   ]}>
-                  <View>
-                    <Text style={styles.ticketItemNumber}>{t.ticketNumber}</Text>
-                    <Text style={styles.ticketItemSub}>
-                      Issued: {t.issuedAt.replace('T', ' ').slice(0, 16)} EAT
-                    </Text>
+                  <View style={styles.ticketLeft}>
+                    <Text style={styles.ticketIndexText}>#{idx + 1}</Text>
+                    <View>
+                      <Text style={styles.ticketItemNumber}>{t.ticketNumber}</Text>
+                      <Text style={styles.ticketOwnerText}>
+                        Owner: {getTicketOwnerName(t)}
+                      </Text>
+                      <Text style={styles.ticketItemSub}>
+                        Issued {t.issuedAt.replace('T', ' ').slice(0, 16)} EAT
+                      </Text>
+                    </View>
                   </View>
                   <StatusPill
                     status={t.isWinningTicket ? 'healthy' : 'info'}
-                    label={t.isWinningTicket ? 'WINNING TICKET' : 'ENTERED'}
+                    label={t.isWinningTicket ? 'SELECTED WINNER' : 'ELIGIBLE'}
                     size="small"
                   />
                 </View>
               ))}
+
+              {!isDrawCompleted && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Add another sample ticket"
+                  onPress={handleSeedSample}
+                  style={styles.addAnotherSampleLink}>
+                  <Text style={styles.addAnotherSampleText}>
+                    + Add Another Synthetic Participant Ticket
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             <View style={styles.emptyTicketsBox}>
+              <Text style={styles.emptyTicketsIcon}>🎟️</Text>
+              <Text style={styles.emptyTicketsTitle}>No Eligible Tickets Loaded</Text>
               <Text style={styles.emptyTicketsText}>
-                No tickets issued yet for today’s draw. Go to the Contribute tab and make your 50 ETB daily contribution to receive your ticket.
+                No participant has completed today’s 50 ETB contribution yet. A draw cannot run without at least one eligible ticket.
               </Text>
+              <View style={styles.emptyActionsRow}>
+                <AppButton
+                  title="Contribute 50 ETB Now →"
+                  variant="primary"
+                  onPress={() => router.push('/(tabs)/contribute')}
+                  style={{ flex: 1 }}
+                />
+                <AppButton
+                  title="Seed Sample Ticket"
+                  variant="outline"
+                  onPress={handleSeedSample}
+                  style={{ flex: 1 }}
+                />
+              </View>
             </View>
           )}
         </Card>
 
         {/* Historical Draws Ledger */}
-        <Card style={styles.sectionCard} variant="elevated">
+        <Card style={styles.sectionCard} variant="surface">
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Previous Draw Results</Text>
-            <Text style={styles.ticketCountText}>{drawHistory.length} Recorded</Text>
+            <View>
+              <Text style={styles.cardTitle}>Historical Draw Log</Text>
+              <Text style={styles.cardSubtitle}>
+                Deterministic demonstration records of previous draws.
+              </Text>
+            </View>
+            <Text style={styles.historyCountText}>{drawHistory.length} Completed</Text>
           </View>
 
           <View style={styles.historyList}>
@@ -206,7 +375,7 @@ export default function DrawRoomScreen() {
                     Winner: {d.winnerName || 'In progress'}
                   </Text>
                   <Text style={styles.historyTicket}>
-                    Ticket: {d.winningTicketNumber || 'Awaiting draw'}
+                    Winning Ticket: {d.winningTicketNumber || 'Awaiting draw'}
                   </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
@@ -222,8 +391,158 @@ export default function DrawRoomScreen() {
           </View>
         </Card>
 
+        {/* Mandatory Safety Notice */}
         <DisclaimerNotice />
       </ScrollView>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 1. Deliberate Confirmation Modal                              */}
+      {/* ------------------------------------------------------------- */}
+      <Modal
+        visible={showConfirmModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowConfirmModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalAmharic}>የዕጣ ማረጋገጫ</Text>
+                <Text style={styles.modalTitle}>Confirm Draw Simulation</Text>
+              </View>
+              <DemoBadge label="SIMULATION" />
+            </View>
+
+            <View style={styles.confirmDetailsBox}>
+              <Text style={styles.confirmDetailsTitle}>SELECTION PARAMETERS</Text>
+              <View style={styles.confirmRow}>
+                <Text style={styles.confirmLabel}>Draw Instance:</Text>
+                <Text style={styles.confirmValue}>{activeDrawId}</Text>
+              </View>
+              <View style={styles.confirmRow}>
+                <Text style={styles.confirmLabel}>Eligible Tickets:</Text>
+                <Text style={[styles.confirmValue, { color: colors.primaryLight, fontWeight: '700' }]}>
+                  {eligibleTickets.length} Tickets
+                </Text>
+              </View>
+              <View style={styles.confirmRow}>
+                <Text style={styles.confirmLabel}>Stated Capital Prize:</Text>
+                <Text style={[styles.confirmValue, { color: colors.accentGold, fontWeight: '700' }]}>
+                  1,000,000 ETB (Held in Escrow)
+                </Text>
+              </View>
+              <View style={styles.confirmRow}>
+                <Text style={styles.confirmLabel}>Selection Algorithm:</Text>
+                <Text style={styles.confirmValue}>FNV-1a Hash Modulo</Text>
+              </View>
+            </View>
+
+            <View style={styles.confirmDisclaimerBox}>
+              <Text style={styles.confirmDisclaimerText}>
+                ⚠️ This action executes an offline client-side demonstration selection. No real lottery prize or financial entitlement will be created.
+              </Text>
+            </View>
+
+            <View style={styles.modalActionsRow}>
+              <AppButton
+                title="Cancel"
+                variant="outline"
+                onPress={() => setShowConfirmModal(false)}
+                style={{ flex: 1 }}
+              />
+              <AppButton
+                title="Execute Draw Now →"
+                variant="gold"
+                onPress={handleExecuteDraw}
+                style={{ flex: 2 }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 2. Winner Announcement Modal                                  */}
+      {/* ------------------------------------------------------------- */}
+      <Modal
+        visible={showWinnerModal && activeWinnerData !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowWinnerModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.winnerHeader}>
+              <Text style={styles.winnerCelebrationIcon}>🏆</Text>
+              <Text style={styles.winnerAmharicTitle}>የዕጣው አሸናፊ ተመርጧል!</Text>
+              <Text style={styles.winnerMainTitle}>Demonstration Winner Selected</Text>
+              <StatusPill status="healthy" label="SIMULATED WINNER — NO MONEY AWARDED" size="small" />
+            </View>
+
+            <View style={styles.winnerCardBox}>
+              <Text style={styles.winnerTicketHeading}>WINNING TICKET NUMBER</Text>
+              <Text style={styles.winnerTicketBig}>
+                {activeWinnerData?.winningTicket.ticketNumber}
+              </Text>
+
+              <View style={styles.winnerProfileRow}>
+                <View style={styles.winnerAvatar}>
+                  <Text style={styles.winnerAvatarText}>
+                    {activeWinnerData?.winner.fullName
+                      .split(' ')
+                      .map((n: string) => n[0])
+                      .join('')}
+                  </Text>
+                </View>
+                <View>
+                  <Text style={styles.winnerFullName}>
+                    {activeWinnerData?.winner.fullName}
+                  </Text>
+                  <Text style={styles.winnerRoleSub}>
+                    Role: {activeWinnerData?.winner.role.toUpperCase()} • 📍 {activeWinnerData?.winner.location}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Escrow Terms Summary */}
+            <View style={styles.escrowTermsBox}>
+              <Text style={styles.escrowTermsTitle}>PROPOSED 6-MONTH ESCROW MODEL</Text>
+              <Text style={styles.escrowTermsBullet}>
+                • <Text style={styles.boldText}>1,000,000 ETB</Text> placed in CBE custody for 180 days.
+              </Text>
+              <Text style={styles.escrowTermsBullet}>
+                • Accrues claimed <Text style={styles.boldText}>22% annual interest</Text> (~602.74 ETB/day).
+              </Text>
+              <Text style={styles.escrowTermsBullet}>
+                • Daily post-win repayment escalates to <Text style={styles.boldText}>500 ETB + 50 ETB fee</Text>.
+              </Text>
+              <Text style={styles.escrowTermsDisclaimer}>
+                * Illustrative demonstration arithmetic only. Not a binding financial commitment.
+              </Text>
+            </View>
+
+            <View style={styles.winnerActionsContainer}>
+              <AppButton
+                title="Inspect Winner Escrow & Repayments →"
+                variant="gold"
+                onPress={() => {
+                  setShowWinnerModal(false);
+                  router.push('/(tabs)/winner');
+                }}
+                fullWidth
+                style={{ marginBottom: spacing.xs }}
+              />
+
+              <AppButton
+                title="Dismiss & Stay in Draw Room"
+                variant="outline"
+                onPress={() => setShowWinnerModal(false)}
+                fullWidth
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -236,15 +555,26 @@ const styles = StyleSheet.create({
   container: {
     padding: spacing.md,
     paddingBottom: spacing.huge,
+    maxWidth: 640,
+    alignSelf: 'center',
+    width: '100%',
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  amharicHeader: {
+    ...typography.caption,
+    color: colors.accentGold,
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 2,
   },
   screenTitle: {
-    ...typography.h2,
+    ...typography.h1,
+    fontSize: 24,
     color: colors.dark.textPrimary,
   },
   screenSubtitle: {
@@ -252,13 +582,42 @@ const styles = StyleSheet.create({
     color: colors.dark.textSecondary,
     fontSize: 12,
   },
+  regulatoryCallout: {
+    backgroundColor: '#1E1408',
+    borderColor: 'rgba(217, 162, 59, 0.4)',
+    borderWidth: 1.5,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+  },
+  regulatoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: 4,
+  },
+  regulatoryIcon: {
+    fontSize: 18,
+  },
+  regulatoryTitle: {
+    ...typography.h3,
+    fontSize: 13,
+    color: colors.accentGold,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  regulatoryText: {
+    ...typography.caption,
+    color: colors.accentGoldLight,
+    lineHeight: 16,
+    fontSize: 11,
+  },
   drawCard: {
     marginBottom: spacing.md,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: spacing.xs,
   },
   cardTitle: {
@@ -266,12 +625,23 @@ const styles = StyleSheet.create({
     color: colors.dark.textPrimary,
     fontSize: 16,
   },
+  cardDate: {
+    ...typography.caption,
+    color: colors.dark.textMuted,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  cardSubtitle: {
+    ...typography.caption,
+    color: colors.dark.textSecondary,
+    marginTop: 2,
+  },
   prizeContainer: {
     marginVertical: spacing.sm,
   },
   metricsGrid: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: spacing.xs,
     marginBottom: spacing.md,
   },
   seedBox: {
@@ -280,20 +650,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
     padding: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  seedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   seedLabel: {
     ...typography.label,
     color: colors.dark.textMuted,
     fontSize: 9,
     letterSpacing: 0.8,
-    marginBottom: 4,
   },
   seedHash: {
     ...typography.bodySmall,
     color: colors.accentGold,
     fontFamily: 'monospace',
     fontSize: 12,
-    marginBottom: 4,
+    marginVertical: 4,
   },
   seedNote: {
     ...typography.caption,
@@ -301,54 +677,80 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
   },
-  winnerCard: {
-    marginBottom: spacing.md,
-    backgroundColor: '#1E170A',
-    borderColor: colors.accentGoldDark,
-    borderWidth: 1.5,
+  actionButtonsContainer: {
+    gap: spacing.xs,
   },
-  winnerTitle: {
+  seedSampleButton: {
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+    marginTop: 4,
+  },
+  seedSampleText: {
+    ...typography.caption,
+    color: colors.accentGold,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  completedActionsBox: {
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  completedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E170A',
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.accentGoldDark,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  completedBannerIcon: {
+    fontSize: 24,
+  },
+  completedBannerTitle: {
     ...typography.h3,
     color: colors.accentGold,
-    fontSize: 15,
+    fontSize: 14,
   },
-  winnerDetails: {
-    marginTop: spacing.xs,
-  },
-  winnerTicketNumber: {
-    ...typography.h2,
-    color: colors.accentGold,
-    fontSize: 22,
-    letterSpacing: 1.5,
-    marginVertical: 4,
-  },
-  winnerNameText: {
-    ...typography.body,
-    fontWeight: '700',
-    color: colors.dark.textPrimary,
-  },
-  winnerMetaText: {
+  completedBannerDesc: {
     ...typography.caption,
     color: colors.dark.textSecondary,
+    fontSize: 12,
     marginTop: 2,
   },
-  winnerDisclaimer: {
-    fontSize: 10,
-    color: colors.accentGoldLight,
-    marginTop: spacing.sm,
-    lineHeight: 14,
+  boldGold: {
+    color: colors.accentGold,
+    fontWeight: '700',
+  },
+  boldText: {
+    color: colors.dark.textPrimary,
+    fontWeight: '700',
+  },
+  completedButtonsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
   sectionCard: {
     marginBottom: spacing.md,
   },
-  ticketCountText: {
+  ticketCountBadge: {
+    backgroundColor: colors.dark.surfaceElevated,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.dark.surfaceBorder,
+  },
+  ticketCountBadgeText: {
     ...typography.caption,
-    color: colors.dark.textMuted,
+    color: colors.primaryLight,
     fontWeight: '700',
+    fontSize: 11,
   },
   ticketList: {
     gap: spacing.xs,
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
   },
   ticketRow: {
     flexDirection: 'row',
@@ -362,35 +764,90 @@ const styles = StyleSheet.create({
   },
   winningTicketRow: {
     borderColor: colors.accentGold,
-    backgroundColor: '#1A180E',
+    backgroundColor: '#1C190B',
+  },
+  ticketLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
+  },
+  ticketIndexText: {
+    ...typography.caption,
+    color: colors.dark.textMuted,
+    fontWeight: '700',
+    fontSize: 11,
   },
   ticketItemNumber: {
     ...typography.body,
     fontWeight: '700',
     color: colors.accentGold,
-    fontSize: 15,
-    letterSpacing: 1,
+    fontSize: 14,
+    letterSpacing: 0.8,
+  },
+  ticketOwnerText: {
+    ...typography.caption,
+    color: colors.dark.textPrimary,
+    fontSize: 11,
+    marginTop: 1,
   },
   ticketItemSub: {
     ...typography.caption,
-    color: colors.dark.textSecondary,
+    color: colors.dark.textMuted,
+    fontSize: 10,
+    marginTop: 1,
+  },
+  addAnotherSampleLink: {
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+    marginTop: 4,
+  },
+  addAnotherSampleText: {
+    ...typography.caption,
+    color: colors.primaryLight,
     fontSize: 11,
-    marginTop: 2,
+    fontWeight: '600',
   },
   emptyTicketsBox: {
     backgroundColor: colors.dark.surfaceElevated,
     borderRadius: radii.md,
-    padding: spacing.md,
-    marginTop: spacing.xs,
+    padding: spacing.lg,
+    alignItems: 'center',
+    marginTop: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.dark.surfaceBorder,
+  },
+  emptyTicketsIcon: {
+    fontSize: 32,
+    marginBottom: spacing.xs,
+  },
+  emptyTicketsTitle: {
+    ...typography.h3,
+    color: colors.dark.textPrimary,
+    fontSize: 15,
+    marginBottom: 4,
   },
   emptyTicketsText: {
     ...typography.bodySmall,
-    color: colors.dark.textMuted,
+    color: colors.dark.textSecondary,
+    textAlign: 'center',
     lineHeight: 18,
+    fontSize: 12,
+    marginBottom: spacing.md,
+  },
+  emptyActionsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    width: '100%',
+  },
+  historyCountText: {
+    ...typography.caption,
+    color: colors.dark.textMuted,
+    fontWeight: '700',
   },
   historyList: {
+    marginTop: spacing.sm,
     gap: spacing.xs,
-    marginTop: spacing.xs,
   },
   historyRow: {
     flexDirection: 'row',
@@ -398,7 +855,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.dark.surfaceBorder,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   historyDate: {
     ...typography.body,
@@ -423,5 +880,195 @@ const styles = StyleSheet.create({
     color: colors.primaryLight,
     fontSize: 13,
     marginBottom: 2,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 540,
+    backgroundColor: colors.dark.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1.5,
+    borderColor: colors.dark.surfaceBorder,
+    padding: spacing.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  modalAmharic: {
+    ...typography.caption,
+    color: colors.accentGold,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  modalTitle: {
+    ...typography.h2,
+    fontSize: 20,
+    color: colors.dark.textPrimary,
+  },
+  confirmDetailsBox: {
+    backgroundColor: colors.dark.surfaceElevated,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.dark.surfaceBorder,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    gap: 8,
+  },
+  confirmDetailsTitle: {
+    ...typography.label,
+    fontSize: 10,
+    color: colors.dark.textMuted,
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  confirmRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  confirmLabel: {
+    ...typography.caption,
+    color: colors.dark.textMuted,
+    fontSize: 12,
+  },
+  confirmValue: {
+    ...typography.caption,
+    color: colors.dark.textPrimary,
+    fontSize: 12,
+  },
+  confirmDisclaimerBox: {
+    backgroundColor: 'rgba(217, 162, 59, 0.1)',
+    borderRadius: radii.sm,
+    padding: spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(217, 162, 59, 0.3)',
+    marginBottom: spacing.md,
+  },
+  confirmDisclaimerText: {
+    ...typography.caption,
+    color: colors.accentGoldLight,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  modalActionsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+
+  // Winner Modal Specifics
+  winnerHeader: {
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  winnerCelebrationIcon: {
+    fontSize: 40,
+    marginBottom: 4,
+  },
+  winnerAmharicTitle: {
+    ...typography.caption,
+    color: colors.accentGold,
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  winnerMainTitle: {
+    ...typography.h1,
+    fontSize: 22,
+    color: colors.dark.textPrimary,
+    marginBottom: 6,
+  },
+  winnerCardBox: {
+    backgroundColor: '#1E170A',
+    borderRadius: radii.md,
+    borderWidth: 1.5,
+    borderColor: colors.accentGoldDark,
+    padding: spacing.md,
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  winnerTicketHeading: {
+    ...typography.label,
+    fontSize: 10,
+    color: colors.accentGold,
+    letterSpacing: 1,
+  },
+  winnerTicketBig: {
+    ...typography.h1,
+    fontSize: 26,
+    color: colors.accentGold,
+    letterSpacing: 1.5,
+    marginVertical: 4,
+  },
+  winnerProfileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+    gap: spacing.sm,
+  },
+  winnerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.accentGoldDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  winnerAvatarText: {
+    ...typography.h3,
+    color: '#FFFFFF',
+    fontSize: 14,
+  },
+  winnerFullName: {
+    ...typography.body,
+    fontWeight: '700',
+    color: colors.dark.textPrimary,
+    fontSize: 14,
+  },
+  winnerRoleSub: {
+    ...typography.caption,
+    color: colors.dark.textSecondary,
+    fontSize: 11,
+  },
+  escrowTermsBox: {
+    backgroundColor: colors.dark.surfaceElevated,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.dark.surfaceBorder,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    gap: 4,
+  },
+  escrowTermsTitle: {
+    ...typography.label,
+    fontSize: 10,
+    color: colors.dark.textMuted,
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  escrowTermsBullet: {
+    ...typography.caption,
+    color: colors.dark.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  escrowTermsDisclaimer: {
+    ...typography.caption,
+    color: colors.dark.textMuted,
+    fontSize: 10,
+    marginTop: 4,
+  },
+  winnerActionsContainer: {
+    gap: spacing.xs,
   },
 });

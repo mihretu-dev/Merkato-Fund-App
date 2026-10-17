@@ -55,7 +55,10 @@ export interface IMerkatoService {
   getActiveDraw(): Promise<DailyDraw>;
   getDrawHistory(): Promise<DailyDraw[]>;
   getUserTickets(userId: string, drawId?: string): Promise<DrawTicket[]>;
-  simulateDailyDraw(drawId?: string): Promise<ExecuteDrawResult>;
+  getDrawTickets(drawId: string): Promise<DrawTicket[]>;
+  simulateDailyDraw(drawId?: string, seed?: string): Promise<ExecuteDrawResult>;
+  addSampleTicket(userId: string, drawId?: string): Promise<DrawTicket>;
+  resetActiveDraw(drawId?: string): Promise<DailyDraw>;
 
   /** Winner Escrow, Repayment & Buffer */
   getEscrowAccount(userId: string): Promise<EscrowAccount | null>;

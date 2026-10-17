@@ -195,7 +195,7 @@ export const INITIAL_BETHLEHEM_ESCROW: EscrowAccount = {
   unlockDate: '2027-02-28',
   status: 'locked',
   bankPartner: 'Commercial Bank of Ethiopia (CBE)',
-  escrowAccountNumber: '1000-ESC-8392-ETB',
+  escrowAccountNumber: 'DEMO-1000-ESC-8392-ETB',
   totalDaysLocked: 180,
   elapsedDays: 45,
   dailyInterestYieldETB: 602.74, // 1M * 0.22 / 365

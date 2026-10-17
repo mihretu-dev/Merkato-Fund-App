@@ -175,40 +175,93 @@ export class MockMerkatoService implements IMerkatoService {
     );
   }
 
-  async simulateDailyDraw(drawId?: string): Promise<ExecuteDrawResult> {
+  async getDrawTickets(drawId: string): Promise<DrawTicket[]> {
+    return deepClone(this.tickets.filter((t) => t.drawId === drawId));
+  }
+
+  async addSampleTicket(userId: string, drawId?: string): Promise<DrawTicket> {
+    const user = Object.values(this.users).find((u) => u.id === userId);
+    if (!user) {
+      throw new Error(`User not found: ${userId}`);
+    }
+
     const draw = drawId ? this.draws.find((d) => d.id === drawId) : await this.getActiveDraw();
     if (!draw) {
       throw new Error('Target draw not found');
     }
 
-    // Get current tickets for this draw
-    const drawTickets = this.tickets.filter((t) => t.drawId === draw.id);
-    let winningTicket: DrawTicket;
-    let winnerUser: User;
+    const suffix = Math.floor(1000 + Math.random() * 9000);
+    const sampleTicket: DrawTicket = {
+      id: `ticket-sample-${userId}-${Date.now()}`,
+      drawId: draw.id,
+      userId: user.id,
+      ticketNumber: `MF-${draw.drawDate.replace(/-/g, '')}-S${suffix}`,
+      issuedAt: new Date().toISOString(),
+      isWinningTicket: false,
+    };
 
-    if (drawTickets.length > 0) {
-      // Pick among actual ticket holders
-      const outcome = simulateDemonstrationDraw(
-        drawTickets.map((t) => t.ticketNumber),
-        `seed-${draw.id}-${Date.now()}`
-      );
-      winningTicket = drawTickets.find((t) => t.ticketNumber === outcome.winningTicketNumber)!;
-      winnerUser = Object.values(this.users).find((u) => u.id === winningTicket.userId) || this.users.dawit;
-    } else {
-      // Synthesize winner if no user holds ticket
-      const ticketNum = `MF-${draw.drawDate.replace(/-/g, '')}-9912`;
-      winningTicket = {
-        id: `ticket-win-${draw.id}`,
-        drawId: draw.id,
-        userId: this.users.dawit.id,
-        ticketNumber: ticketNum,
-        issuedAt: `${draw.drawDate}T10:00:00+03:00`,
-        isWinningTicket: true,
-      };
-      this.tickets.push(winningTicket);
-      winnerUser = this.users.dawit;
+    this.tickets.unshift(sampleTicket);
+    draw.participantCount += 1;
+
+    return deepClone(sampleTicket);
+  }
+
+  async resetActiveDraw(drawId?: string): Promise<DailyDraw> {
+    const draw = drawId ? this.draws.find((d) => d.id === drawId) : this.draws.find((d) => d.id === 'draw-20261017');
+    if (!draw) {
+      throw new Error('Target draw not found');
     }
 
+    draw.status = 'scheduled';
+    delete draw.winningTicketNumber;
+    delete draw.winnerUserId;
+    delete draw.winnerName;
+    delete draw.completedAt;
+
+    // Reset winning status for tickets of this draw
+    this.tickets.forEach((t) => {
+      if (t.drawId === draw.id) {
+        t.isWinningTicket = false;
+      }
+    });
+
+    return deepClone(draw);
+  }
+
+  async simulateDailyDraw(drawId?: string, seed?: string): Promise<ExecuteDrawResult> {
+    const draw = drawId ? this.draws.find((d) => d.id === drawId) : await this.getActiveDraw();
+    if (!draw) {
+      throw new Error('Target draw not found');
+    }
+
+    // Guard: Prevent double-execution of the same draw instance
+    if (draw.status === 'completed') {
+      throw new Error('This draw instance has already been completed. Reset or replay the draw first.');
+    }
+
+    // Get strictly eligible tickets for this specific draw
+    const eligibleTickets = this.tickets.filter((t) => t.drawId === draw.id);
+    if (eligibleTickets.length === 0) {
+      throw new Error('Cannot run draw simulation: zero eligible tickets found for this draw.');
+    }
+
+    // Execute deterministic demonstration selection
+    const outcome = simulateDemonstrationDraw(
+      eligibleTickets.map((t) => t.ticketNumber),
+      seed || `DEMO-SEED-${draw.id}-${Date.now()}`
+    );
+
+    const winningTicket = eligibleTickets.find((t) => t.ticketNumber === outcome.winningTicketNumber);
+    if (!winningTicket) {
+      throw new Error('Winning ticket resolution failed.');
+    }
+
+    const winnerUser = Object.values(this.users).find((u) => u.id === winningTicket.userId);
+    if (!winnerUser) {
+      throw new Error(`Winner user profile not found for ticket ${winningTicket.ticketNumber}`);
+    }
+
+    // Update draw & ticket state
     winningTicket.isWinningTicket = true;
     draw.status = 'completed';
     draw.winningTicketNumber = winningTicket.ticketNumber;
@@ -216,6 +269,55 @@ export class MockMerkatoService implements IMerkatoService {
     draw.winnerName = winnerUser.fullName;
     draw.completedAt = `${draw.drawDate}T20:00:05+03:00`;
     this.poolStats.totalDrawsCompleted += 1;
+
+    // Setup or update winner escrow and repayment models so winner screen agrees
+    this.escrowAccounts[winnerUser.id] = {
+      id: `escrow-${winnerUser.id}`,
+      winnerId: `winner-${winnerUser.id}`,
+      userId: winnerUser.id,
+      escrowAccountNumber: `DEMO-CBE-ESC-${winnerUser.id.slice(-4).toUpperCase()}`,
+      bankPartner: 'Commercial Bank of Ethiopia (CBE)',
+      principalAmountETB: 1_000_000,
+      lockedDate: draw.drawDate,
+      unlockDate: '2027-04-15',
+      totalDaysLocked: 180,
+      elapsedDays: 0,
+      annualInterestRate: 0.22,
+      dailyInterestYieldETB: 602.74,
+      accruedInterestETB: 0,
+      projectedTotalInterestETB: 108493.15,
+      status: 'locked',
+    };
+
+    this.repayments[winnerUser.id] = {
+      id: `repay-${winnerUser.id}`,
+      winnerId: `winner-${winnerUser.id}`,
+      userId: winnerUser.id,
+      totalPrizeETB: 1_000_000,
+      dailyPrincipalETB: 500,
+      dailyAdminFeeETB: 50,
+      dailyTotalDueETB: 550,
+      monthlyProjectedETB: 16_500,
+      remainingPrincipalETB: 1_000_000,
+      totalRepaidETB: 0,
+      installmentsCompleted: 0,
+      nextPaymentDueDate: draw.drawDate,
+    };
+
+    this.buffers[winnerUser.id] = {
+      id: `buffer-${winnerUser.id}`,
+      winnerId: `winner-${winnerUser.id}`,
+      cycleLengthDays: 15,
+      targetBufferAmountETB: 7500,
+      currentBufferBalanceETB: 7500,
+      dailyBurnRateETB: 500,
+      cycleStartDate: draw.drawDate,
+      cycleRenewalDate: '2026-11-01',
+      daysRemainingInCycle: 15,
+      healthStatus: 'healthy',
+    };
+
+    winnerUser.role = 'winner';
 
     return {
       draw: deepClone(draw),

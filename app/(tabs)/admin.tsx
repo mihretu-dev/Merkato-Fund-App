@@ -24,7 +24,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { colors, spacing, typography, radii } from '@/src/theme/tokens';
+import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/tokens';
 import {
   Card,
   AppButton,
@@ -614,38 +614,43 @@ const styles = StyleSheet.create({
   },
   personaName: {
     ...typography.body,
+    fontFamily: fontFamilies.sans,
     fontWeight: '700',
     color: colors.dark.textPrimary,
-    fontSize: 13,
+    fontSize: 14,
   },
   personaRoleSub: {
     ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.accentGold,
-    fontSize: 10,
-    marginTop: 1,
+    fontSize: 12,
+    marginTop: 2,
   },
   personaScope: {
     ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
-    fontSize: 10,
+    fontSize: 12,
     marginTop: 4,
-    lineHeight: 14,
+    lineHeight: 16,
   },
   switchPersonaBtn: {
     backgroundColor: colors.dark.surface,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
     borderRadius: radii.sm,
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
-    minHeight: 36,
+    minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
   switchPersonaBtnText: {
     ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.primaryLight,
     fontWeight: '700',
+    fontSize: 12,
   },
   drawStatusBox: {
     backgroundColor: colors.dark.surfaceElevated,
@@ -657,18 +662,20 @@ const styles = StyleSheet.create({
   drawRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 4,
+    paddingVertical: 6,
   },
   drawLabel: {
     ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
-    fontSize: 11,
+    fontSize: 13,
   },
   drawVal: {
     ...typography.caption,
+    fontFamily: fontFamilies.sans,
     fontWeight: '700',
     color: colors.dark.textPrimary,
-    fontSize: 11,
+    fontSize: 13,
   },
   completedDrawBox: {
     marginTop: spacing.sm,
@@ -681,27 +688,31 @@ const styles = StyleSheet.create({
   },
   completedDrawTitle: {
     ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.accentGold,
     fontWeight: '800',
-    fontSize: 10,
+    fontSize: 12,
   },
   completedDrawWinner: {
     ...typography.body,
+    fontFamily: fontFamilies.sans,
     fontWeight: '800',
     color: colors.dark.textPrimary,
     marginTop: 2,
+    fontSize: 14,
   },
   completedDrawTicket: {
     ...typography.caption,
     color: colors.accentGold,
-    fontFamily: 'monospace',
-    fontSize: 11,
-    marginTop: 1,
+    fontFamily: fontFamilies.mono,
+    fontSize: 12,
+    marginTop: 2,
   },
   completedDrawTime: {
     ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
-    fontSize: 10,
+    fontSize: 12,
     marginTop: 2,
   },
   warningList: {
@@ -716,14 +727,18 @@ const styles = StyleSheet.create({
   },
   warningItemTitle: {
     ...typography.bodySmall,
+    fontFamily: fontFamilies.sans,
     fontWeight: '800',
     color: '#F87171',
     marginBottom: 2,
+    fontSize: 13,
   },
   warningItemBody: {
     ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: '#FECACA',
-    lineHeight: 15,
+    lineHeight: 18,
+    fontSize: 12,
   },
   navGrid: {
     flexDirection: 'row',
@@ -748,9 +763,10 @@ const styles = StyleSheet.create({
   },
   navButtonText: {
     ...typography.caption,
+    fontFamily: fontFamilies.sans,
     fontWeight: '700',
     color: colors.dark.textPrimary,
-    fontSize: 10,
+    fontSize: 12,
   },
   resetCard: {
     marginBottom: spacing.md,

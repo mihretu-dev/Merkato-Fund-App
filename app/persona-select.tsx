@@ -21,7 +21,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors, spacing, typography, radii } from '@/src/theme/tokens';
+import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/tokens';
 import { Card, AppButton, DemoBadge, DisclaimerNotice, StatusPill } from '@/src/components/ui';
 import { useUserStore } from '@/src/stores/useUserStore';
 import { DemoPersonaId } from '@/src/domain/types';
@@ -385,24 +385,29 @@ const styles = StyleSheet.create({
   },
   personaName: {
     ...typography.h3,
-    fontSize: 16,
+    fontFamily: fontFamilies.sans,
+    fontSize: 17,
+    fontWeight: '700',
     color: colors.dark.textPrimary,
   },
   personaOccupation: {
     ...typography.bodySmall,
-    fontSize: 12,
+    fontFamily: fontFamilies.sans,
+    fontSize: 13,
     color: colors.dark.textSecondary,
   },
   personaLocation: {
     ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
-    fontSize: 11,
-    marginTop: 1,
+    fontSize: 12,
+    marginTop: 2,
   },
   personaSummary: {
     ...typography.bodySmall,
-    fontSize: 13,
-    lineHeight: 18,
+    fontFamily: fontFamilies.sans,
+    fontSize: 14,
+    lineHeight: 20,
     color: colors.dark.textSecondary,
     marginBottom: spacing.sm,
   },
@@ -414,7 +419,8 @@ const styles = StyleSheet.create({
   },
   featureTitle: {
     ...typography.label,
-    fontSize: 10,
+    fontFamily: fontFamilies.sans,
+    fontSize: 11,
     color: colors.dark.textMuted,
     letterSpacing: 0.8,
     marginBottom: 6,
@@ -426,13 +432,14 @@ const styles = StyleSheet.create({
   },
   featureBullet: {
     fontSize: 14,
-    lineHeight: 16,
+    lineHeight: 18,
     marginRight: 6,
   },
   featureText: {
     ...typography.caption,
-    fontSize: 12,
-    lineHeight: 16,
+    fontFamily: fontFamilies.sans,
+    fontSize: 13,
+    lineHeight: 18,
     color: colors.dark.textSecondary,
     flex: 1,
   },
@@ -450,22 +457,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   radioCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: colors.dark.textMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   radioDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   selectionLabel: {
     ...typography.caption,
-    fontSize: 11,
+    fontFamily: fontFamilies.sans,
+    fontSize: 12,
     color: colors.dark.textMuted,
   },
   actionContainer: {
@@ -479,18 +487,21 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     flex: 1,
-    paddingVertical: 10,
+    minHeight: 48,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: radii.md,
     backgroundColor: colors.dark.surfaceElevated,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
   },
   secondaryButtonText: {
     ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
 });

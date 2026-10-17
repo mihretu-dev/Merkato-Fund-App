@@ -14,7 +14,7 @@ import { useContributionStore } from '@/src/stores/useContributionStore';
 import { useDrawStore } from '@/src/stores/useDrawStore';
 import { useWinnerStore } from '@/src/stores/useWinnerStore';
 import { DemoPersonaId } from '@/src/domain/types';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { colors, radii, spacing, typography, fontFamilies } from '@/src/theme/tokens';
 import { StatusPill } from './StatusPill';
 
 interface PersonaSelectorProps {
@@ -69,7 +69,7 @@ export function PersonaSelector({ onPersonaChanged, compact = false }: PersonaSe
                   styles.compactButtonText,
                   isSelected && styles.compactButtonTextActive,
                 ]}>
-                {persona.fullName.split(' ')[0]} ({persona.role})
+                {persona.fullName.split(' ')[0]} ({persona.role === 'admin' ? 'Auditor' : persona.role === 'winner' ? 'Winner' : 'Member'})
               </Text>
             </TouchableOpacity>
           );
@@ -100,7 +100,7 @@ export function PersonaSelector({ onPersonaChanged, compact = false }: PersonaSe
               accessibilityRole="button"
               accessibilityLabel={`Select persona ${persona.fullName}, role ${persona.role}`}
               accessibilityState={{ selected: isSelected }}
-              activeOpacity={0.7}
+              activeOpacity={0.75}
               onPress={() => handleSelectPersona(id)}
               style={[
                 styles.card,
@@ -122,7 +122,7 @@ export function PersonaSelector({ onPersonaChanged, compact = false }: PersonaSe
               </Text>
 
               <Text style={styles.cardPhone}>
-                {persona.phoneNumber}
+                {persona.phoneNumber} • {persona.location}
               </Text>
 
               {isSelected && (
@@ -148,13 +148,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: spacing.xs,
-    paddingHorizontal: spacing.xs,
+    paddingHorizontal: 2,
   },
   title: {
-    ...typography.label,
-    color: colors.dark.textMuted,
-    fontSize: 11,
-    letterSpacing: 1,
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textSecondary,
+    fontSize: 12,
+    fontWeight: typography.fontWeights.semibold,
+    letterSpacing: 0.8,
   },
   cardsRow: {
     flexDirection: 'column',
@@ -163,13 +164,13 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.dark.surfaceElevated,
     borderRadius: radii.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
     padding: spacing.md,
   },
   cardActive: {
     borderColor: colors.primary,
-    backgroundColor: '#0F2922',
+    backgroundColor: 'rgba(13, 148, 136, 0.1)',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -178,29 +179,31 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   cardName: {
-    ...typography.h3,
-    fontSize: 16,
+    fontFamily: fontFamilies.sans,
+    fontSize: 17,
+    fontWeight: typography.fontWeights.bold,
     color: colors.dark.textPrimary,
     flex: 1,
     marginRight: spacing.sm,
   },
   cardOccupation: {
-    ...typography.bodySmall,
+    fontFamily: fontFamilies.sans,
+    fontSize: 14,
     color: colors.dark.textSecondary,
     marginBottom: 2,
   },
   cardPhone: {
-    ...typography.caption,
-    color: colors.dark.textMuted,
+    fontFamily: fontFamilies.sans,
     fontSize: 12,
+    color: colors.dark.textMuted,
   },
   activeIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
     paddingTop: spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: colors.primaryDark,
+    borderTopColor: 'rgba(13, 148, 136, 0.3)',
   },
   activeDot: {
     width: 6,
@@ -210,26 +213,26 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   activeLabel: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.primaryLight,
-    fontWeight: '700',
-    fontSize: 10,
+    fontWeight: typography.fontWeights.bold,
+    fontSize: 11,
     letterSpacing: 0.5,
   },
 
-  // Compact styles
+  // Compact segmented styles
   compactContainer: {
     flexDirection: 'row',
-    gap: spacing.xs,
     backgroundColor: colors.dark.surface,
-    padding: 4,
+    padding: 3,
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
   },
   compactButton: {
     flex: 1,
-    paddingVertical: 6,
+    minHeight: 38,
+    paddingVertical: 8,
     paddingHorizontal: 8,
     borderRadius: radii.sm,
     alignItems: 'center',
@@ -237,15 +240,21 @@ const styles = StyleSheet.create({
   },
   compactButtonActive: {
     backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   compactButtonText: {
-    ...typography.caption,
-    color: colors.dark.textMuted,
-    fontWeight: '600',
-    fontSize: 11,
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textSecondary,
+    fontWeight: typography.fontWeights.medium,
+    fontSize: 12,
   },
   compactButtonTextActive: {
     color: '#FFFFFF',
-    fontWeight: '700',
+    fontWeight: typography.fontWeights.bold,
   },
 });
+

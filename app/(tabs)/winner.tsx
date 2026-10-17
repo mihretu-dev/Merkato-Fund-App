@@ -22,7 +22,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { colors, spacing, typography, radii } from '@/src/theme/tokens';
+import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/tokens';
 import {
   Card,
   AppButton,
@@ -761,11 +761,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   todayWinnerTicket: {
-    ...typography.caption,
+    fontFamily: fontFamilies.mono,
     color: colors.accentGold,
-    fontFamily: 'monospace',
-    fontSize: 11,
-    marginTop: 1,
+    fontSize: 13,
+    marginTop: 2,
   },
   personaWarning: {
     backgroundColor: '#1E170A',
@@ -949,10 +948,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   accountNumber: {
-    ...typography.caption,
+    fontFamily: fontFamilies.mono,
     color: colors.primaryLight,
-    fontFamily: 'monospace',
-    fontSize: 11,
+    fontSize: 12,
     marginTop: 2,
   },
   principalRow: {

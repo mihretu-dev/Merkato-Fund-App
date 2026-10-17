@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { colors, radii, spacing, typography, fontFamilies } from '@/src/theme/tokens';
 import { DemoBadge } from './DemoBadge';
 
 interface DisclaimerNoticeProps {
@@ -21,7 +21,7 @@ export function DisclaimerNotice({
 }: DisclaimerNoticeProps) {
   return (
     <View style={[styles.container, style]}>
-      <View style={styles.header}>
+      <View style={styles.topRow}>
         <DemoBadge compact label="PROTOTYPE NOTICE" />
       </View>
       <Text style={styles.message}>{message}</Text>
@@ -31,19 +31,21 @@ export function DisclaimerNotice({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1E1B18',
-    borderColor: '#78350F',
+    backgroundColor: 'rgba(26, 34, 52, 0.6)',
+    borderColor: 'rgba(245, 158, 11, 0.25)',
     borderWidth: 1,
     borderRadius: radii.md,
     padding: spacing.md,
-    marginVertical: spacing.sm,
+    marginVertical: spacing.md,
   },
-  header: {
-    marginBottom: spacing.xs,
+  topRow: {
+    marginBottom: 6,
   },
   message: {
-    color: '#D1D5DB',
-    fontSize: typography.fontSizes.xs,
-    lineHeight: typography.lineHeights.xs,
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
+

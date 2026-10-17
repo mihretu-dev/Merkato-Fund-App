@@ -4,7 +4,7 @@ import { Link, Tabs } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
 import Colors from '@/constants/Colors';
-import { colors } from '@/src/theme/tokens';
+import { colors, fontFamilies } from '@/src/theme/tokens';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 
@@ -20,11 +20,12 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.dark.surface,
           borderTopColor: colors.dark.surfaceBorder,
-          height: 60,
+          height: 64,
           paddingBottom: 8,
           paddingTop: 6,
         },
         tabBarLabelStyle: {
+          fontFamily: fontFamilies.sans,
           fontSize: 11,
           fontWeight: '600',
         },
@@ -33,7 +34,9 @@ export default function TabLayout() {
         },
         headerTintColor: colors.dark.textPrimary,
         headerTitleStyle: {
+          fontFamily: fontFamilies.sans,
           fontWeight: '700',
+          fontSize: 17,
         },
         headerShown: useClientOnlyValue(false, true),
         headerRight: () => (

@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 
-import { colors, spacing, typography, radii } from '@/src/theme/tokens';
+import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/tokens';
 import {
   Card,
   AppButton,
@@ -392,17 +392,18 @@ const styles = StyleSheet.create({
   },
   logTitle: {
     ...typography.label,
+    fontFamily: fontFamilies.sans,
     color: colors.accentGold,
-    fontSize: 10,
+    fontSize: 11,
     letterSpacing: 1,
     marginBottom: 6,
   },
   logLine: {
     ...typography.caption,
     color: colors.dark.textMuted,
-    fontFamily: 'monospace',
-    fontSize: 11,
-    lineHeight: 16,
+    fontFamily: fontFamilies.mono,
+    fontSize: 12,
+    lineHeight: 18,
   },
   linkRow: {
     marginTop: spacing.xs,
@@ -415,25 +416,28 @@ const styles = StyleSheet.create({
   },
   scopeTitle: {
     ...typography.h3,
+    fontFamily: fontFamilies.sans,
     color: colors.primaryLight,
-    fontSize: 15,
+    fontSize: 16,
   },
   scopeColumn: {
-    gap: 4,
+    gap: 6,
     marginTop: spacing.xs,
   },
   scopeSectionHeader: {
     ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.status.healthy,
     fontWeight: '800',
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 0.5,
     marginBottom: 2,
   },
   scopeBullet: {
     ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 12,
+    lineHeight: 18,
   },
 });

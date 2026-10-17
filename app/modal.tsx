@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Platform, StyleSheet, ScrollView, View, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { colors, spacing, typography, radii } from '@/src/theme/tokens';
+import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/tokens';
 import { Card, DemoBadge, DisclaimerNotice, AppButton } from '@/src/components/ui';
 
 export default function ModalScreen() {
@@ -19,9 +19,9 @@ export default function ModalScreen() {
         <Card style={styles.card} variant="elevated">
           <Text style={styles.cardTitle}>Purpose & Safety Policy</Text>
           <Text style={styles.cardBody}>
-            This application is a Day 1 technology demonstration built with React Native and Expo Router.
+            This application is a demonstration prototype built with React Native and Expo Router.
             It provides a visual, interactive evaluation of the concepts described in the Merkato Fund
-            Telegram marketing materials.
+            concept materials.
           </Text>
           <Text style={styles.cardBody}>
             Under no circumstances does this prototype perform actual monetary transactions, connect
@@ -92,6 +92,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   title: {
+    fontFamily: fontFamilies.sans,
     fontSize: typography.fontSizes.xl,
     fontWeight: typography.fontWeights.bold,
     color: colors.dark.textPrimary,
@@ -101,22 +102,25 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   cardTitle: {
+    fontFamily: fontFamilies.sans,
     fontSize: typography.fontSizes.md,
     fontWeight: typography.fontWeights.bold,
     color: colors.accentGold,
     marginBottom: spacing.xs,
   },
   cardBody: {
-    fontSize: typography.fontSizes.xs,
-    lineHeight: typography.lineHeights.xs,
+    fontFamily: fontFamilies.sans,
+    fontSize: typography.fontSizes.sm,
+    lineHeight: 20,
     color: colors.dark.textSecondary,
     marginBottom: spacing.xs,
   },
   bulletPoint: {
-    fontSize: typography.fontSizes.xs,
-    lineHeight: 20,
+    fontFamily: fontFamilies.sans,
+    fontSize: typography.fontSizes.sm,
+    lineHeight: 22,
     color: colors.dark.textSecondary,
-    marginVertical: 2,
+    marginVertical: 4,
   },
   bold: {
     color: colors.dark.textPrimary,

@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { colors, spacing, typography, radii } from '@/src/theme/tokens';
+import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/tokens';
 import {
   Card,
   AppButton,
@@ -132,7 +132,7 @@ export default function MemberDashboardScreen() {
               style={styles.headerIconButton}>
               <Text style={styles.headerIconText}>📖 Tour</Text>
             </TouchableOpacity>
-            <DemoBadge label="DEMO PROTOTYPE" />
+            <DemoBadge compact label="DEMO PROTOTYPE" />
           </View>
         </View>
 
@@ -199,7 +199,7 @@ export default function MemberDashboardScreen() {
               highlight
             />
             <MetricTile
-              label="Total Contributed"
+              label="Contributed"
               value={formatETB(currentUser.totalContributedETB)}
               subtitle="All-time micro pool"
             />
@@ -248,10 +248,13 @@ export default function MemberDashboardScreen() {
           </Card>
         )}
 
-        {/* Daily 50 ETB Contribution Status Card */}
-        <Card style={styles.sectionCard} variant="elevated">
+        {/* Daily 50 ETB Contribution Status Card - HERO SECTION */}
+        <Card style={[styles.sectionCard, !paidToday && styles.heroPaymentCard]} variant="elevated">
           <View style={styles.cardHeaderRow}>
-            <Text style={styles.cardSectionTitle}>Daily 50 ETB Micro-Contribution</Text>
+            <View>
+              <Text style={styles.cardSectionTitle}>Daily 50 ETB Micro-Contribution</Text>
+              <Text style={styles.paymentSub}>Ethiopian Equb Digital Micro-Pool</Text>
+            </View>
             <StatusPill
               status={paidToday ? 'healthy' : 'caution'}
               label={paidToday ? 'PAID TODAY' : 'PAYMENT DUE'}
@@ -260,8 +263,8 @@ export default function MemberDashboardScreen() {
 
           <Text style={styles.cardSectionDesc}>
             {paidToday
-              ? 'Your 50 ETB daily contribution for today (2026-10-17) is completed. You are entered into tonight’s 1,000,000 ETB draw.'
-              : 'Pay your 50 ETB daily contribution to maintain your 14-day streak and secure your algorithmic draw ticket for tonight.'}
+              ? 'Your 50 ETB daily contribution for today is completed. You are entered into tonight’s 1,000,000 ETB draw.'
+              : 'Submit today’s 50 ETB contribution to extend your 14-day streak and secure your algorithmic draw ticket.'}
           </Text>
 
           {/* Visual Streak Week Tracker */}
@@ -295,8 +298,8 @@ export default function MemberDashboardScreen() {
           <View style={styles.actionRow}>
             {paidToday ? (
               <AppButton
-                title="View Contribution Ledger & Receipts"
-                variant="outline"
+                title="View Contribution Ledger & Receipts →"
+                variant="secondary"
                 onPress={() => router.push('/(tabs)/contribute')}
                 fullWidth
               />
@@ -314,7 +317,10 @@ export default function MemberDashboardScreen() {
         {/* Tonight's Algorithmic Draw Card */}
         <Card style={styles.sectionCard} variant="elevated">
           <View style={styles.cardHeaderRow}>
-            <Text style={styles.cardSectionTitle}>Tonight's Algorithmic Draw</Text>
+            <View>
+              <Text style={styles.cardSectionTitle}>Tonight's Algorithmic Draw</Text>
+              <Text style={styles.paymentSub}>CBE-Backed 1,000,000 ETB Pool</Text>
+            </View>
             <StatusPill status="info" label="20:00:00 EAT" />
           </View>
 
@@ -335,12 +341,15 @@ export default function MemberDashboardScreen() {
 
           {activeTodayTickets.length > 0 ? (
             <View style={styles.ticketCard}>
-              <Text style={styles.ticketLabel}>ENTRY TICKET NUMBER</Text>
+              <View style={styles.ticketTopRow}>
+                <Text style={styles.ticketLabel}>ENTRY TICKET NUMBER</Text>
+                <StatusPill status="healthy" label="ELIGIBLE" size="small" />
+              </View>
               <Text style={styles.ticketNumber}>
                 {activeTodayTickets[0].ticketNumber}
               </Text>
               <Text style={styles.ticketSub}>
-                Issued {activeTodayTickets[0].issuedAt.split('T')[1].slice(0, 5)} EAT • Demonstration Ticket (Client-Side Simulation)
+                Issued {activeTodayTickets[0].issuedAt.split('T')[1].slice(0, 5)} EAT • Client-Side Simulation Ticket
               </Text>
             </View>
           ) : (
@@ -411,7 +420,7 @@ export default function MemberDashboardScreen() {
               accessibilityLabel="Replay 3-slide Onboarding"
               onPress={() => router.push('/onboarding')}
               style={styles.evaluatorButton}>
-              <Text style={styles.evaluatorButtonText}>📖 Replay Onboarding</Text>
+              <Text style={styles.evaluatorButtonText}>📖 Tour</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -419,7 +428,7 @@ export default function MemberDashboardScreen() {
               accessibilityLabel="Open Persona Selector Screen"
               onPress={() => router.push('/persona-select')}
               style={styles.evaluatorButton}>
-              <Text style={styles.evaluatorButtonText}>👥 Persona Selector</Text>
+              <Text style={styles.evaluatorButtonText}>👥 Personas</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -427,7 +436,7 @@ export default function MemberDashboardScreen() {
               accessibilityLabel="Open Day 2 State Verification"
               onPress={() => router.push('/(tabs)/verify')}
               style={styles.evaluatorButton}>
-              <Text style={styles.evaluatorButtonText}>🔍 State Verification</Text>
+              <Text style={styles.evaluatorButtonText}>🔍 Verification</Text>
             </TouchableOpacity>
           </View>
         </Card>
@@ -458,16 +467,16 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   topBarBrand: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.primaryLight,
     fontWeight: '700',
-    fontSize: 12,
-    letterSpacing: 0.5,
+    fontSize: 13,
+    letterSpacing: 0.3,
   },
   dateLabel: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
-    fontSize: 11,
+    fontSize: 12,
     marginTop: 2,
   },
   topRightActions: {
@@ -476,37 +485,40 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerIconButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: radii.sm,
     backgroundColor: colors.dark.surfaceElevated,
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
   },
   headerIconText: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.accentGold,
     fontWeight: '700',
-    fontSize: 11,
+    fontSize: 12,
   },
   greetingHeader: {
     marginTop: spacing.xs,
     marginBottom: spacing.md,
   },
   greetingAmharic: {
-    ...typography.h2,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textPrimary,
     fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '700',
   },
   greetingName: {
     color: colors.accentGold,
     fontWeight: '700',
   },
   greetingSubtitle: {
-    ...typography.bodySmall,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 3,
   },
   personaSwitcherSection: {
     marginBottom: spacing.md,
@@ -515,19 +527,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   sectionLabel: {
-    ...typography.label,
-    color: colors.dark.textMuted,
-    fontSize: 10,
-    letterSpacing: 0.8,
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.6,
   },
   viewAllPersonasLink: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.accentGold,
     fontWeight: '600',
-    fontSize: 11,
+    fontSize: 12,
   },
   profileCard: {
     marginBottom: spacing.md,
@@ -551,9 +564,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primaryLight,
   },
   avatarText: {
-    ...typography.h3,
+    fontFamily: fontFamilies.sans,
     color: '#FFFFFF',
     fontSize: 18,
+    fontWeight: '700',
   },
   profileMeta: {
     flex: 1,
@@ -564,32 +578,36 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   profileName: {
-    ...typography.h3,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textPrimary,
-    fontSize: 17,
+    fontSize: 18,
+    fontWeight: '700',
   },
   occupationText: {
-    ...typography.bodySmall,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
+    fontSize: 14,
+    marginTop: 2,
   },
   locationText: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
+    fontSize: 12,
     marginTop: 2,
   },
   metricsGrid: {
     flexDirection: 'row',
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   bannerCardWinner: {
     marginBottom: spacing.md,
-    backgroundColor: '#1E170A',
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
     borderColor: colors.accentGoldDark,
     borderWidth: 1.5,
   },
   bannerCardAdmin: {
     marginBottom: spacing.md,
-    backgroundColor: '#0F172A',
+    backgroundColor: 'rgba(0, 114, 206, 0.08)',
     borderColor: colors.telebirr,
     borderWidth: 1.5,
   },
@@ -600,39 +618,54 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   bannerTitle: {
-    ...typography.h3,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textPrimary,
-    fontSize: 15,
+    fontSize: 16,
+    fontWeight: '700',
   },
   bannerText: {
-    ...typography.bodySmall,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
+    fontSize: 13,
     lineHeight: 18,
   },
   sectionCard: {
     marginBottom: spacing.md,
   },
+  heroPaymentCard: {
+    borderColor: 'rgba(13, 148, 136, 0.4)',
+    backgroundColor: 'rgba(13, 148, 136, 0.06)',
+  },
   cardHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: spacing.xs,
   },
   cardSectionTitle: {
-    ...typography.h3,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textPrimary,
-    fontSize: 16,
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  paymentSub: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textMuted,
+    fontSize: 12,
+    marginTop: 2,
   },
   cardSectionDesc: {
-    ...typography.bodySmall,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
     marginBottom: spacing.md,
+    marginTop: 2,
   },
   streakTrackerContainer: {
     backgroundColor: colors.dark.surfaceElevated,
     borderRadius: radii.md,
-    padding: spacing.sm,
+    padding: spacing.md,
     marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
@@ -641,19 +674,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   streakTrackerLabel: {
-    ...typography.label,
-    fontSize: 10,
-    color: colors.dark.textMuted,
-    letterSpacing: 0.8,
+    fontFamily: fontFamilies.sans,
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.dark.textSecondary,
+    letterSpacing: 0.5,
   },
   streakCountBadge: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.accentGold,
     fontWeight: '700',
-    fontSize: 11,
+    fontSize: 13,
   },
   streakDotsRow: {
     flexDirection: 'row',
@@ -664,9 +698,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   streakDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -683,13 +717,14 @@ const styles = StyleSheet.create({
     borderColor: colors.accentGold,
   },
   streakDotCheck: {
+    fontFamily: fontFamilies.sans,
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 11,
+    fontSize: 12,
   },
   streakDayLabel: {
-    ...typography.caption,
-    fontSize: 10,
+    fontFamily: fontFamilies.sans,
+    fontSize: 11,
     color: colors.dark.textMuted,
   },
   streakDayLabelToday: {
@@ -709,41 +744,49 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   ticketBadgeLabel: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
-    fontSize: 10,
+    fontSize: 11,
     textTransform: 'uppercase',
   },
   ticketBadgeCount: {
-    ...typography.h3,
+    fontFamily: fontFamilies.sans,
     color: colors.primaryLight,
-    fontSize: 16,
+    fontSize: 17,
+    fontWeight: '700',
   },
   ticketCard: {
-    backgroundColor: '#0F1E19',
+    backgroundColor: 'rgba(13, 148, 136, 0.08)',
     borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: colors.primaryDark,
+    borderColor: 'rgba(13, 148, 136, 0.35)',
     padding: spacing.md,
     marginBottom: spacing.xs,
   },
+  ticketTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   ticketLabel: {
-    ...typography.label,
+    fontFamily: fontFamilies.sans,
     color: colors.primaryLight,
-    fontSize: 9,
-    letterSpacing: 1,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.6,
   },
   ticketNumber: {
-    ...typography.h2,
+    fontFamily: fontFamilies.mono,
     color: colors.accentGold,
     fontSize: 20,
-    letterSpacing: 1.5,
+    fontWeight: '700',
+    letterSpacing: 1,
     marginVertical: 4,
   },
   ticketSub: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
-    fontSize: 11,
+    fontSize: 12,
   },
   noTicketNotice: {
     backgroundColor: colors.dark.surfaceElevated,
@@ -754,8 +797,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   noTicketText: {
-    ...typography.bodySmall,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
+    fontSize: 13,
     lineHeight: 18,
   },
   recentList: {
@@ -765,53 +809,57 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: colors.dark.divider,
   },
   recentLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   recentIcon: {
-    fontSize: 18,
+    fontSize: 20,
   },
   recentChannel: {
-    ...typography.bodySmall,
+    fontFamily: fontFamilies.sans,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.dark.textPrimary,
   },
   recentDate: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
-    fontSize: 11,
+    fontSize: 12,
+    marginTop: 2,
   },
   recentRight: {
     alignItems: 'flex-end',
     gap: 2,
   },
   recentAmount: {
-    ...typography.bodySmall,
+    fontFamily: fontFamilies.sans,
     fontWeight: '700',
+    fontVariant: ['tabular-nums'],
     color: colors.dark.textPrimary,
-    fontSize: 13,
+    fontSize: 15,
   },
   devCard: {
     marginBottom: spacing.md,
-    backgroundColor: '#111827',
+    backgroundColor: colors.dark.surface,
     borderColor: colors.dark.surfaceBorder,
   },
   devTitle: {
-    ...typography.h3,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textPrimary,
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '700',
   },
   devDesc: {
-    ...typography.bodySmall,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 18,
     marginVertical: 4,
   },
   evaluatorButtonsRow: {
@@ -821,19 +869,22 @@ const styles = StyleSheet.create({
   },
   evaluatorButton: {
     flex: 1,
+    minHeight: 40,
     paddingVertical: 8,
-    paddingHorizontal: 6,
-    borderRadius: radii.md,
+    paddingHorizontal: 8,
+    borderRadius: radii.sm,
     backgroundColor: colors.dark.surfaceElevated,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
   },
   evaluatorButtonText: {
-    ...typography.caption,
-    fontSize: 10,
+    fontFamily: fontFamilies.sans,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.accentGold,
     textAlign: 'center',
   },
 });
+

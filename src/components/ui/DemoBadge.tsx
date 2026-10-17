@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { colors, radii, spacing, typography, fontFamilies } from '@/src/theme/tokens';
 
 interface DemoBadgeProps {
   label?: string;
@@ -34,15 +34,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.demoBadge.background,
-    borderColor: colors.demoBadge.border,
+    borderColor: 'rgba(217, 119, 6, 0.4)',
     borderWidth: 1,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.xs,
     borderRadius: radii.full,
     alignSelf: 'flex-start',
   },
   containerCompact: {
-    paddingHorizontal: spacing.xs + 2,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
   },
   dot: {
@@ -50,16 +50,19 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: colors.accentGold,
-    marginRight: spacing.xs,
+    marginRight: 6,
   },
   text: {
+    fontFamily: fontFamilies.sans,
     color: colors.demoBadge.text,
-    fontSize: typography.fontSizes.xs,
-    fontWeight: typography.fontWeights.bold,
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: typography.fontWeights.semibold,
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
   textCompact: {
-    fontSize: 9,
+    fontSize: 10,
+    letterSpacing: 0.4,
   },
 });
+

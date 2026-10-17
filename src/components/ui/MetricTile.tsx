@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { colors, radii, spacing, typography, fontFamilies } from '@/src/theme/tokens';
 import { StatusPill } from './StatusPill';
 
 interface MetricTileProps {
@@ -70,33 +70,38 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   highlightContainer: {
-    borderColor: colors.primary,
-    backgroundColor: '#0C201A',
+    borderColor: 'rgba(13, 148, 136, 0.4)',
+    backgroundColor: 'rgba(13, 148, 136, 0.1)',
   },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 6,
   },
   label: {
-    ...typography.label,
-    color: colors.dark.textMuted,
-    fontSize: 10,
-    letterSpacing: 0.8,
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textSecondary,
+    fontSize: 12,
+    fontWeight: typography.fontWeights.semibold,
+    letterSpacing: 0.4,
   },
   value: {
-    ...typography.h2,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textPrimary,
-    fontSize: 20,
+    fontSize: 21,
+    lineHeight: 26,
+    fontWeight: typography.fontWeights.bold,
     marginBottom: 2,
   },
   highlightValue: {
     color: colors.primaryLight,
   },
   subtitle: {
-    ...typography.caption,
-    color: colors.dark.textSecondary,
-    fontSize: 11,
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textMuted,
+    fontSize: 12,
+    lineHeight: 16,
   },
 });
+

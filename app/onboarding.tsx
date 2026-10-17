@@ -22,7 +22,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors, spacing, typography, radii } from '@/src/theme/tokens';
+import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/tokens';
 import { Card, AppButton, DemoBadge, DisclaimerNotice, StatusPill } from '@/src/components/ui';
 import { useUserStore } from '@/src/stores/useUserStore';
 
@@ -295,22 +295,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryDark,
   },
   stepText: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
-    fontSize: 11,
+    fontSize: 12,
     marginLeft: 6,
   },
   skipButton: {
     paddingVertical: 6,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.sm + 2,
     borderRadius: radii.sm,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   skipText: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.accentGold,
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 13,
   },
   scrollContent: {
     padding: spacing.lg,
@@ -328,24 +328,25 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   amharicTitle: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sans,
     color: colors.accentGold,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   slideTitle: {
-    ...typography.h1,
+    fontFamily: fontFamilies.sans,
     fontSize: 26,
-    lineHeight: 32,
+    lineHeight: 34,
+    fontWeight: '700',
     color: colors.dark.textPrimary,
     marginBottom: spacing.xs,
   },
   slideSubtitle: {
-    ...typography.body,
-    fontSize: 14,
-    lineHeight: 20,
+    fontFamily: fontFamilies.sans,
+    fontSize: 15,
+    lineHeight: 22,
     color: colors.dark.textSecondary,
     marginBottom: spacing.lg,
   },
@@ -362,12 +363,12 @@ const styles = StyleSheet.create({
   },
   bulletItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.dark.surfaceBorder,
+    borderBottomColor: colors.dark.divider,
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.dark.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
@@ -376,7 +377,7 @@ const styles = StyleSheet.create({
     borderColor: colors.dark.surfaceBorder,
   },
   iconText: {
-    fontSize: 18,
+    fontSize: 20,
   },
   bulletContent: {
     flex: 1,
@@ -388,21 +389,22 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   bulletLabel: {
-    ...typography.h3,
-    fontSize: 15,
+    fontFamily: fontFamilies.sans,
+    fontSize: 16,
+    fontWeight: '700',
     color: colors.dark.textPrimary,
     flex: 1,
     marginRight: spacing.xs,
   },
   bulletDesc: {
-    ...typography.bodySmall,
-    fontSize: 13,
-    lineHeight: 18,
+    fontFamily: fontFamilies.sans,
+    fontSize: 14,
+    lineHeight: 20,
     color: colors.dark.textSecondary,
   },
   disclaimerCard: {
-    backgroundColor: '#1E1B10',
-    borderColor: 'rgba(217, 162, 59, 0.3)',
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderColor: 'rgba(245, 158, 11, 0.25)',
     borderWidth: 1,
     marginBottom: spacing.md,
     padding: spacing.md,
@@ -414,17 +416,18 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   disclaimerIcon: {
-    fontSize: 16,
+    fontSize: 18,
   },
   disclaimerTitle: {
-    ...typography.h3,
+    fontFamily: fontFamilies.sans,
     fontSize: 14,
+    fontWeight: '700',
     color: colors.accentGold,
   },
   disclaimerBody: {
-    ...typography.bodySmall,
-    fontSize: 12,
-    lineHeight: 17,
+    fontFamily: fontFamilies.sans,
+    fontSize: 13,
+    lineHeight: 18,
     color: colors.dark.textSecondary,
   },
   footerBar: {

@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { colors, typography, spacing } from '@/src/theme/tokens';
+import { colors, typography, spacing, fontFamilies } from '@/src/theme/tokens';
 import { formatETB } from '@/src/domain/calculations/currency';
 
 interface CurrencyDisplayProps {
@@ -49,15 +49,19 @@ const styles = StyleSheet.create({
     marginVertical: spacing.xs,
   },
   label: {
+    fontFamily: fontFamilies.sans,
     fontSize: typography.fontSizes.xs,
     color: colors.dark.textSecondary,
     fontWeight: typography.fontWeights.medium,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 2,
+    marginBottom: 3,
   },
   amount: {
+    fontFamily: fontFamilies.sans,
     fontWeight: typography.fontWeights.bold,
+    fontVariant: ['tabular-nums'],
+    letterSpacing: -0.3,
   },
 });
 
@@ -79,3 +83,4 @@ const sizeStyles = StyleSheet.create({
     lineHeight: typography.lineHeights.display,
   },
 });
+

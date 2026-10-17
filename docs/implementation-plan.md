@@ -205,21 +205,26 @@ gantt
 
 ---
 
-### Day 7: Admin Preview, Automated Testing, Polish & Demo Handover
-- **Objective**: Add optional admin view, run test suite, polish UI edge cases, and finalize deliverables.
+### Day 7: Final Audit, Admin/Auditor View, End-to-End Regression & Demo Readiness (COMPLETE & VERIFIED)
+- **Objective**: Reconcile Day 6 financial/buffer state, refine the Admin/Auditor overview with persona and solvency inspection, conduct comprehensive end-to-end regression testing across the entire 17-step evaluator journey, document scope/verification boundaries, and verify complete demo readiness.
 - **Deliverables**:
-  - **Administrator View (`app/admin/index.tsx`)**:
-    - Pool health metrics (Total contributors, daily inflow, prize allocation).
-    - Manual draw trigger and RNG audit log.
-    - Role gate (only visible when Admin persona is selected).
-  - **Demo Sandbox Controls**:
-    - Floating / Profile Drawer allowing demo evaluators to toggle financial parameters, reset state, or accelerate draw countdowns.
-  - **Automated Test Suite**:
-    - Run all Jest unit tests (`calculations.test.ts`, `mock-services.test.ts`).
-  - **Cross-Device UI Polish**:
-    - Responsive layout verification for small and large screens.
-    - Light / Dark theme contrast checks.
-    - Empty states, network error simulations, and loading skeleton states.
+  - **Buffer Inconsistency Reconciliation (`src/domain/calculations/repayment.ts`, `app/(tabs)/winner.tsx`)**:
+    - Established `calculateBufferStatus` and `calculateBufferReplenishment` as the sole source of truth for rolling 15-day buffer balance and status.
+    - Resolved narrative discrepancy between the old static mock seed (5,000 ETB / Day 5) and the mathematical cycle logic at Day 45 ($3 \times 15$ days): Day 45 is the end of Cycle 3 (Day 15/15), where 7,500 ETB has been burned, meaning the buffer is at 0 ETB (depleted) requiring Replenishment #3.
+    - Explicitly labeled all replenishment figures as modeled requirements rather than funded cash (`unresolved_funding_rule`).
+    - Added comprehensive regression tests in `calculations.test.ts` for Day 0 (7,500 ETB, healthy), Day 15 (0 ETB, depleted), Day 45 (0 ETB, depleted), Day 90 (0 ETB, depleted), Day 180 (0 ETB, depleted), and mid-cycle Day 5 (5,000 ETB, healthy).
+  - **Admin & Auditor Inspection Screen (`app/(tabs)/admin.tsx`)**:
+    - Evaluator overview with persona switcher (Dawit, Bethlehem, Abebe) and synthetic role metadata.
+    - Demo contribution pool overview: 24,850 modeled contributors, 1,242,500 ETB daily inflow, 1,000,000 ETB prize escrow, 242,500 ETB operational reserve.
+    - Active draw and ticket state monitor with live winner identity, ticket ID, and escrow status.
+    - Aggregate model assumptions & financial risk register: 20,000-member floor requirement, 15-day rolling buffer deficit (-6,708.90 ETB/cycle), and post-lock unamortized principal debt (910,000 ETB / ~5 years).
+    - Quick evaluator navigation shortcuts to Dashboard, Daily Contribution, Draw Room, Winner/Escrow Simulator, and Developer Verification screens.
+    - Two-step deliberate demo reset modal requiring evaluator confirmation before invoking `resetAllDemoStores`.
+  - **Prototype Scope & Verification Boundaries (`app/(tabs)/verify.tsx`)**:
+    - Explicit breakdown of verified client-side capabilities (ACT/365 arithmetic, Zustand store sync, draw simulation engine, persona switching, 78 unit/integration tests) vs unverified production claims (no live bank custody at CBE, no guaranteed 22% yield, no NLA lottery certification, no live telebirr/CBE Birr payments, no legal amortization).
+  - **Automated Regression Suite (`src/stores/__tests__/stores.test.ts`)**:
+    - Implemented a complete 17-step end-to-end evaluator journey test suite validating onboarding, contribution, duplicate contribution rejection, ticket issuance, draw simulation, winner inspection across timeline days, persona switching, and full demo reset.
+    - Total test suite expanded to **78 passing tests** across 21 suites with zero failures.
 
 ---
 

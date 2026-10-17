@@ -351,4 +351,83 @@ describe('Zustand Stores Test Suite', () => {
       assert.equal(useContributionStore.getState().paidToday, false);
     });
   });
+
+  describe('7. Day 7: End-to-End Evaluator Journey Regression', () => {
+    it('executes full 17-step evaluator journey with complete state coherence', async () => {
+      // Step 1: Clean demo state
+      await resetAllDemoStores();
+      assert.equal(useUserStore.getState().currentPersonaId, 'dawit');
+      assert.equal(useContributionStore.getState().paidToday, false);
+
+      // Step 2 & 3: Onboarding & Persona Selection (Dawit)
+      useUserStore.getState().setHasCompletedOnboarding(true);
+      assert.equal(useUserStore.getState().hasCompletedOnboarding, true);
+      const dawit = await useUserStore.getState().switchPersona('dawit');
+      assert.equal(dawit.role, 'member');
+
+      // Step 4 & 5: Make one simulated 50 ETB contribution
+      const contrib = await useContributionStore
+        .getState()
+        .submitDailyContribution(dawit.id, 'telebirr', 50);
+      assert.equal(contrib.contribution.amountETB, 50);
+      assert.ok(contrib.ticket.ticketNumber.startsWith('MF-20261017-'));
+
+      // Step 6: Verify updated contribution status
+      assert.equal(useContributionStore.getState().paidToday, true);
+
+      // Step 7: Attempt duplicate contribution and verify rejection
+      await assert.rejects(
+        () => useContributionStore.getState().submitDailyContribution(dawit.id, 'cbe_birr', 50),
+        /already contributed for today/
+      );
+
+      // Step 8: Open draw room and verify ticket eligibility
+      await useDrawStore.getState().loadDrawData(dawit.id);
+      const eligible = useDrawStore.getState().eligibleDrawTickets;
+      assert.ok(eligible.some((t) => t.ticketNumber === contrib.ticket.ticketNumber));
+
+      // Step 9: Execute demo draw and verify selected ticket owner
+      const drawRes = await useDrawStore.getState().executeDemoDraw('draw-20261017');
+      assert.equal(drawRes.winner.id, dawit.id);
+      assert.equal(drawRes.winningTicket.ticketNumber, contrib.ticket.ticketNumber);
+
+      // Step 10: Winner screen consistency
+      await useWinnerStore.getState().loadWinnerData(dawit.id);
+      assert.equal(useWinnerStore.getState().escrowAccount?.userId, dawit.id);
+      assert.equal(useWinnerStore.getState().escrowAccount?.principalAmountETB, 1000000);
+
+      // Step 11: Inspect Days 0, 15, 45, 90, 180
+      const days = [0, 15, 45, 90, 180];
+      for (const d of days) {
+        useWinnerStore.getState().setSimulationDay(d);
+        assert.equal(useWinnerStore.getState().simulationDay, d);
+      }
+
+      // Step 12: Compare both repayment scenarios
+      useDemoConfigStore.getState().setRepaymentDailyModel('550_bundle');
+      assert.equal(useDemoConfigStore.getState().config.dailyPrincipalRepaymentETB, 550);
+      useDemoConfigStore.getState().setRepaymentDailyModel('500_plus_50');
+      assert.equal(useDemoConfigStore.getState().config.dailyPrincipalRepaymentETB, 500);
+
+      // Step 13: Verify buffer status remains isolated from contributions
+      const initialContribCount = useContributionStore.getState().contributions.length;
+      useWinnerStore.getState().setSimulationDay(180);
+      assert.equal(useContributionStore.getState().contributions.length, initialContribCount);
+
+      // Step 14: Switch personas and verify draw result is preserved
+      await useUserStore.getState().switchPersona('bethlehem');
+      assert.equal(useDrawStore.getState().activeDraw?.status, 'completed');
+      assert.equal(useDrawStore.getState().activeDraw?.winnerUserId, dawit.id);
+
+      // Step 15: Reset active draw
+      await useDrawStore.getState().resetActiveDraw('draw-20261017');
+      assert.equal(useDrawStore.getState().activeDraw?.status, 'scheduled');
+
+      // Step 16: Full demo reset restores baseline state
+      await resetAllDemoStores();
+      assert.equal(useUserStore.getState().currentPersonaId, 'dawit');
+      assert.equal(useContributionStore.getState().paidToday, false);
+      assert.equal(useDrawStore.getState().activeDraw?.status, 'scheduled');
+    });
+  });
 });

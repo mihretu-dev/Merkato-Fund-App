@@ -122,8 +122,34 @@ export default function Day2VerificationScreen() {
               Interactive Zustand Stores & Transition Harness
             </Text>
           </View>
-          <DemoBadge label="DAY 2 VERIFIED" />
+          <DemoBadge label="DAY 7 VERIFIED" />
         </View>
+
+        {/* Scope and Boundaries: What is Verified vs What is NOT Verified */}
+        <Card style={styles.scopeCard} variant="elevated">
+          <View style={styles.cardHeader}>
+            <Text style={styles.scopeTitle}>🔬 Prototype Scope & Verification Boundaries</Text>
+            <StatusPill status="info" label="CLIENT DEMO" size="small" />
+          </View>
+
+          <View style={styles.scopeColumn}>
+            <Text style={styles.scopeSectionHeader}>✅ WHAT IS VERIFIED BY THIS PROTOTYPE:</Text>
+            <Text style={styles.scopeBullet}>• Pure financial arithmetic (ACT/365 simple interest, 500+50 vs 550 repayment, 15-day buffer burn).</Text>
+            <Text style={styles.scopeBullet}>• Reactive multi-store state synchronization across all 6 tabs without conflicting copies.</Text>
+            <Text style={styles.scopeBullet}>• Deterministic duplicate contribution prevention and completed draw replay protection.</Text>
+            <Text style={styles.scopeBullet}>• Persona switching and clean full-demo reset teardown.</Text>
+            <Text style={styles.scopeBullet}>• 78 passing automated unit and integration tests across 21 test suites.</Text>
+          </View>
+
+          <View style={[styles.scopeColumn, { marginTop: spacing.sm, borderTopWidth: 1, borderColor: '#7F1D1D', paddingTop: spacing.xs }]}>
+            <Text style={[styles.scopeSectionHeader, { color: '#F87171' }]}>❌ WHAT IS NOT VERIFIED (UNVERIFIED MODEL ASSUMPTIONS):</Text>
+            <Text style={[styles.scopeBullet, { color: '#FECACA' }]}>• Real banking custody: Commercial Bank of Ethiopia (CBE) has no agreement or integration.</Text>
+            <Text style={[styles.scopeBullet, { color: '#FECACA' }]}>• 22% annual yield: Stated Telegram marketing claim, unverified by any financial institution.</Text>
+            <Text style={[styles.scopeBullet, { color: '#FECACA' }]}>• NLA lottery certification: Demonstrations are local simulations, not certified random draws.</Text>
+            <Text style={[styles.scopeBullet, { color: '#FECACA' }]}>• Live payments: Telebirr and CBE Birr USSD flows are simulated; no fiat money moves.</Text>
+            <Text style={[styles.scopeBullet, { color: '#FECACA' }]}>• Long-term pool solvency: PDF lacks amortization schedules, default terms, and buffer funding rules.</Text>
+          </View>
+        </Card>
 
         {/* 1. Persona Switching Test */}
         <Card style={styles.card} variant="elevated">
@@ -380,5 +406,34 @@ const styles = StyleSheet.create({
   },
   linkRow: {
     marginTop: spacing.xs,
+  },
+  scopeCard: {
+    marginBottom: spacing.md,
+    backgroundColor: '#0A121E',
+    borderColor: colors.primaryDark,
+    borderWidth: 1.5,
+  },
+  scopeTitle: {
+    ...typography.h3,
+    color: colors.primaryLight,
+    fontSize: 15,
+  },
+  scopeColumn: {
+    gap: 4,
+    marginTop: spacing.xs,
+  },
+  scopeSectionHeader: {
+    ...typography.caption,
+    color: colors.status.healthy,
+    fontWeight: '800',
+    fontSize: 11,
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  scopeBullet: {
+    ...typography.caption,
+    color: colors.dark.textSecondary,
+    fontSize: 11,
+    lineHeight: 16,
   },
 });

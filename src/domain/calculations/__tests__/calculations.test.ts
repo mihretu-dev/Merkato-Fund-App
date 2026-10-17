@@ -495,4 +495,65 @@ describe('7. Day 6: Six-Month Escrow & Cumulative Interest Checkpoints', () => {
     assert.equal(rc.postEscrowPayoffDays, 1820);
     assert.equal(rc.totalPayoffDays, 2000);
   });
+
+  it('reconciles buffer balance, status, and replenishments across Day 0, Day 15, Day 45, Day 90, and Day 180', () => {
+    const config = {
+      bufferAmountETB: 7500,
+      bufferCycleDays: 15,
+      dailyPrincipalRepaymentETB: 500,
+    };
+
+    const getSimCycleDay = (d: number) => (d === 0 ? 0 : ((d - 1) % 15) + 1);
+
+    // Day 0: Opening lock - Cycle 1 start
+    const d0 = calculateBufferStatus(getSimCycleDay(0), config);
+    const r0 = calculateBufferReplenishment(0, config);
+    assert.equal(d0.currentBalanceETB, 7500);
+    assert.equal(d0.healthStatus, 'healthy');
+    assert.equal(d0.daysRemaining, 15);
+    assert.equal(r0.completedCycles, 0);
+    assert.equal(r0.cumulativeReplenishedETB, 0);
+
+    // Day 15: End of Cycle 1 - Depleted checkpoint #1
+    const d15 = calculateBufferStatus(getSimCycleDay(15), config);
+    const r15 = calculateBufferReplenishment(15, config);
+    assert.equal(d15.currentBalanceETB, 0);
+    assert.equal(d15.healthStatus, 'depleted');
+    assert.equal(d15.daysRemaining, 0);
+    assert.equal(r15.completedCycles, 1);
+    assert.equal(r15.cumulativeReplenishedETB, 7500);
+
+    // Day 45: End of Cycle 3 (Month 1.5) - Depleted checkpoint #3
+    const d45 = calculateBufferStatus(getSimCycleDay(45), config);
+    const r45 = calculateBufferReplenishment(45, config);
+    assert.equal(d45.currentBalanceETB, 0);
+    assert.equal(d45.healthStatus, 'depleted');
+    assert.equal(d45.daysRemaining, 0);
+    assert.equal(r45.completedCycles, 3);
+    assert.equal(r45.cumulativeReplenishedETB, 22500);
+
+    // Day 90: End of Cycle 6 (Month 3) - Depleted checkpoint #6
+    const d90 = calculateBufferStatus(getSimCycleDay(90), config);
+    const r90 = calculateBufferReplenishment(90, config);
+    assert.equal(d90.currentBalanceETB, 0);
+    assert.equal(d90.healthStatus, 'depleted');
+    assert.equal(d90.daysRemaining, 0);
+    assert.equal(r90.completedCycles, 6);
+    assert.equal(r90.cumulativeReplenishedETB, 45000);
+
+    // Day 180: End of Cycle 12 (Month 6 Unlock) - Depleted checkpoint #12
+    const d180 = calculateBufferStatus(getSimCycleDay(180), config);
+    const r180 = calculateBufferReplenishment(180, config);
+    assert.equal(d180.currentBalanceETB, 0);
+    assert.equal(d180.healthStatus, 'depleted');
+    assert.equal(d180.daysRemaining, 0);
+    assert.equal(r180.completedCycles, 12);
+    assert.equal(r180.cumulativeReplenishedETB, 90000);
+
+    // Mid-cycle check (e.g. Day 5 of 15)
+    const d5 = calculateBufferStatus(getSimCycleDay(5), config);
+    assert.equal(d5.currentBalanceETB, 5000);
+    assert.equal(d5.healthStatus, 'healthy');
+    assert.equal(d5.daysRemaining, 10);
+  });
 });

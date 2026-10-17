@@ -1,10 +1,10 @@
 # Merkato Fund — Seven-Day Implementation Plan & Delivery Roadmap
 
 **Project**: Merkato Fund Mobile Application  
-**Target Platform**: Android & iOS (React Native + Expo SDK 52 + TypeScript)  
+**Target Platform**: Android & iOS (React Native + Expo SDK 58 + TypeScript)  
 **Timeline**: 7 Calendar Days  
 **Author**: Senior Mobile Architect & Product Engineer  
-**Date**: October 2026  
+**Date**: October 2026 (Day 1 Implemented & Verified)  
 
 ---
 
@@ -25,7 +25,7 @@ gantt
     title Merkato Fund 7-Day Sprint Roadmap
     dateFormat  YYYY-MM-DD
     section Foundation & Core
-    Day 1 - Init, Design System & Math Engine :d1, 2026-10-17, 1d
+    Day 1 - Init, Design System & Math Engine (DONE) :done, d1, 2026-10-17, 1d
     Day 2 - Navigation, Mock Services & Stores :d2, 2026-10-18, 1d
     section Contributor Journey
     Day 3 - Onboarding & Member Dashboard      :d3, 2026-10-19, 1d
@@ -39,15 +39,21 @@ gantt
 
 ---
 
-### Day 1: Project Initialization, Design Tokens & Domain Math Engine
+### Day 1: Project Initialization, Design Tokens & Domain Math Engine (STATUS: VERIFIED)
 - **Objective**: Establish the Expo project structure, TypeScript configuration, design tokens, and thoroughly tested domain calculation engines.
-- **Deliverables**:
-  - Initialize clean Expo project with Expo Router template.
-  - Setup TypeScript `tsconfig.json` with strict type checking and path aliases (`@/*`).
-  - Create design tokens in `src/theme/` (`colors.ts`, `typography.ts`, `spacing.ts`, `formatters.ts`).
-  - Implement pure domain financial calculation modules:
-    - `src/domain/calculations/interest.ts`: 22% p.a. simple and daily compound formula, per-second tick converter.
-    - `src/domain/calculations/amortization.ts`: 500 ETB vs 550 ETB daily schedule generator, interest offset calculator.
+- **Implemented Deliverables**:
+  - Initialized clean Expo project using Expo SDK 58 with Expo Router tabs template (compatible with React 19 and React Native 0.88).
+  - Setup TypeScript `tsconfig.json` with strict type checking, path aliases (`@/*`), and `@types/node`.
+  - Created accessible design system and theme tokens in `src/theme/tokens.ts` and updated `constants/Colors.ts`.
+  - Built reusable accessible UI primitives in `src/components/ui/` (`AppButton`, `Card`, `CurrencyDisplay`, `DemoBadge`, `DisclaimerNotice`, `StatusPill`).
+  - Implemented pure domain financial calculation modules:
+    - `src/domain/calculations/currency.ts`: ETB currency formatting with prefix, suffix, and compact formats.
+    - `src/domain/calculations/interest.ts`: Documented ACT/365 simple interest arithmetic, accrued yield, and net daily flow.
+    - `src/domain/calculations/repayment.ts`: Configurable repayment scenarios (500 ETB vs 550 ETB), separate 50 ETB admin fee distinction, estimated payoff duration, and 7,500 ETB / 15-day buffer health calculations.
+    - `src/domain/calculations/drawSimulation.ts`: Seeded demonstration draw simulation isolated from financial arithmetic.
+  - Automated test suite in `src/domain/calculations/__tests__/calculations.test.ts` (33 unit tests passing via `npm test`).
+  - Interactive Day 1 Engine Playground in `app/(tabs)/index.tsx`, Rules Audit in `app/(tabs)/two.tsx`, and Safety Modal in `app/modal.tsx`.
+  - Added `AGENTS.md` with project conventions and financial safety boundaries.
     - `src/domain/calculations/draw-algorithm.ts`: Seeded pseudo-random draw algorithm.
   - Setup **Jest test suite** and execute automated unit tests verifying the mathematical engine.
 

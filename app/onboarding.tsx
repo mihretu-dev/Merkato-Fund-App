@@ -16,12 +16,12 @@ import {
   View,
   Text,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   Dimensions,
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/tokens';
 import { Card, AppButton, DemoBadge, DisclaimerNotice, StatusPill } from '@/src/components/ui';
 import { useUserStore } from '@/src/stores/useUserStore';
@@ -150,8 +150,10 @@ export default function OnboardingScreen() {
     router.replace('/persona-select');
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
       <View style={styles.header}>
         {/* Step Indicator */}
         <View style={styles.stepIndicator}>
@@ -257,12 +259,12 @@ export default function OnboardingScreen() {
           />
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  screen: {
     flex: 1,
     backgroundColor: colors.dark.background,
   },

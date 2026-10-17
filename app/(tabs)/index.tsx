@@ -17,10 +17,10 @@ import {
   ScrollView,
   View,
   Text,
-  SafeAreaView,
   TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/tokens';
 import {
@@ -41,6 +41,7 @@ import { formatETB } from '@/src/domain/calculations/currency';
 
 export default function MemberDashboardScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const currentUser = useUserStore((s) => s.currentUser);
   const currentPersonaId = useUserStore((s) => s.currentPersonaId);
@@ -88,9 +89,12 @@ export default function MemberDashboardScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[
+          styles.container,
+          { paddingBottom: Math.max(insets.bottom, 16) + spacing.xl },
+        ]}
         showsVerticalScrollIndicator={false}>
         
         {/* 1. Compact App Header Bar */}
@@ -411,12 +415,12 @@ export default function MemberDashboardScreen() {
         {/* 8. Compact Prototype Disclosure */}
         <DisclaimerNotice />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  screen: {
     flex: 1,
     backgroundColor: colors.dark.background,
   },

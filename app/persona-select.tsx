@@ -16,11 +16,11 @@ import {
   View,
   Text,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/tokens';
 import { Card, AppButton, DemoBadge, DisclaimerNotice, StatusPill } from '@/src/components/ui';
 import { useUserStore } from '@/src/stores/useUserStore';
@@ -115,6 +115,7 @@ export default function PersonaSelectScreen() {
   const switchPersona = useUserStore((s) => s.switchPersona);
   const isLoading = useUserStore((s) => s.isLoading);
   const setHasCompletedOnboarding = useUserStore((s) => s.setHasCompletedOnboarding);
+  const insets = useSafeAreaInsets();
 
   const [selectedId, setSelectedId] = useState<DemoPersonaId>(currentPersonaId);
 
@@ -147,9 +148,12 @@ export default function PersonaSelectScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom, 16) + spacing.xl },
+        ]}
         showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
           {/* Top Bar */}
@@ -301,12 +305,12 @@ export default function PersonaSelectScreen() {
           <DisclaimerNotice />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  screen: {
     flex: 1,
     backgroundColor: colors.dark.background,
   },

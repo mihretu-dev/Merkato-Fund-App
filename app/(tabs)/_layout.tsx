@@ -59,6 +59,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          headerShown: false,
           title: 'Dashboard',
           headerTitle: 'Merkato Fund — Dashboard',
           tabBarIcon: ({ color }) => (

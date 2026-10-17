@@ -53,6 +53,14 @@ export function PersonaSelector({ onPersonaChanged, compact = false }: PersonaSe
         {personaList.map((id) => {
           const persona = availablePersonas[id];
           const isSelected = currentPersonaId === id;
+          const firstName = persona.fullName.split(' ')[0];
+          const roleLabel =
+            persona.role === 'admin'
+              ? 'Auditor'
+              : persona.role === 'winner'
+              ? 'Winner'
+              : 'Member';
+
           return (
             <TouchableOpacity
               key={id}
@@ -66,10 +74,19 @@ export function PersonaSelector({ onPersonaChanged, compact = false }: PersonaSe
               ]}>
               <Text
                 style={[
-                  styles.compactButtonText,
-                  isSelected && styles.compactButtonTextActive,
-                ]}>
-                {persona.fullName.split(' ')[0]} ({persona.role === 'admin' ? 'Auditor' : persona.role === 'winner' ? 'Winner' : 'Member'})
+                  styles.compactButtonName,
+                  isSelected && styles.compactButtonNameActive,
+                ]}
+                numberOfLines={1}>
+                {firstName}
+              </Text>
+              <Text
+                style={[
+                  styles.compactButtonRole,
+                  isSelected && styles.compactButtonRoleActive,
+                ]}
+                numberOfLines={1}>
+                {roleLabel}
               </Text>
             </TouchableOpacity>
           );
@@ -228,12 +245,13 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
+    gap: 2,
   },
   compactButton: {
     flex: 1,
-    minHeight: 38,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
+    minHeight: 44,
+    paddingVertical: 5,
+    paddingHorizontal: 4,
     borderRadius: radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
@@ -246,15 +264,28 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  compactButtonText: {
+  compactButtonName: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
-    fontWeight: typography.fontWeights.medium,
+    fontWeight: typography.fontWeights.semibold,
     fontSize: 12,
+    lineHeight: 16,
   },
-  compactButtonTextActive: {
+  compactButtonNameActive: {
     color: '#FFFFFF',
     fontWeight: typography.fontWeights.bold,
+  },
+  compactButtonRole: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textMuted,
+    fontWeight: typography.fontWeights.medium,
+    fontSize: 10,
+    lineHeight: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  compactButtonRoleActive: {
+    color: 'rgba(255, 255, 255, 0.85)',
   },
 });
 

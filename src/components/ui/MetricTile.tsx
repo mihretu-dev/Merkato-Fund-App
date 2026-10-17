@@ -47,7 +47,11 @@ export function MetricTile({
         )}
       </View>
 
-      <Text style={[styles.value, highlight && styles.highlightValue]} numberOfLines={1}>
+      <Text
+        style={[styles.value, highlight && styles.highlightValue]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.75}>
         {value}
       </Text>
 
@@ -66,8 +70,10 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
-    padding: spacing.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
     flex: 1,
+    minWidth: 0,
   },
   highlightContainer: {
     borderColor: 'rgba(13, 148, 136, 0.4)',
@@ -77,20 +83,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   label: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: typography.fontWeights.semibold,
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
   value: {
     fontFamily: fontFamilies.sans,
+    fontVariant: ['tabular-nums'],
     color: colors.dark.textPrimary,
-    fontSize: 21,
-    lineHeight: 26,
+    fontSize: 18,
+    lineHeight: 22,
     fontWeight: typography.fontWeights.bold,
     marginBottom: 2,
   },
@@ -100,8 +107,8 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 11,
+    lineHeight: 14,
   },
 });
 

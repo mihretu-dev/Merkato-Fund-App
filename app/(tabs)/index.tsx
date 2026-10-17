@@ -1,12 +1,14 @@
 /**
  * Merkato Fund — Member Dashboard Screen
  *
- * Primary landing screen delivering a complete first-time & returning member experience:
- * - Ethiopian greeting & active persona indicator
- * - Daily 50 ETB contribution status & quick payment trigger
- * - 14-day visual streak tracker & recent synthetic activity ledger snippet
- * - Tonight's 1,000,000 ETB algorithmic draw ticket display or empty state
- * - Quick evaluator shortcuts to Replay Onboarding, Persona Selection, and Verification
+ * Polished, high-density mobile fintech dashboard:
+ * 1. Compact App Header with brand, date, demo badge, and info trigger
+ * 2. Segmented Persona Switcher
+ * 3. Member Summary with 3 responsive metric tiles (Streak, Contributed, Wallet)
+ * 4. Dominant 50 ETB Contribution Hero with slim 7-day streak track
+ * 5. Compact Draw Preview with 1M ETB prize pool, ticket snippet & status
+ * 6. Recent Activity preview (max 3 items)
+ * 7. Secondary Evaluator Shortcuts & Prototype Disclaimer
  */
 
 import React, { useEffect } from 'react';
@@ -24,7 +26,6 @@ import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/to
 import {
   Card,
   AppButton,
-  CurrencyDisplay,
   DemoBadge,
   StatusPill,
   DisclaimerNotice,
@@ -53,7 +54,6 @@ export default function MemberDashboardScreen() {
   const userTickets = useDrawStore((s) => s.userTickets);
   const loadDrawData = useDrawStore((s) => s.loadDrawData);
 
-  const escrowAccount = useWinnerStore((s) => s.escrowAccount);
   const loadWinnerData = useWinnerStore((s) => s.loadWinnerData);
 
   // First-time evaluator check: redirect to onboarding walkthrough if not completed
@@ -73,32 +73,6 @@ export default function MemberDashboardScreen() {
   }, [currentUser?.id]);
 
   const activeTodayTickets = userTickets.filter((t) => t.drawId === activeDraw?.id);
-
-  // Amharic + English greeting tailored to active persona
-  const getGreeting = () => {
-    const firstName = currentUser.fullName.split(' ')[0];
-    if (currentUser.role === 'winner') {
-      return {
-        amharic: 'እንኳን ደህና መጡ ፣',
-        name: `${firstName}!`,
-        subtitle: 'የተቆለፈ የ1 ሚሊዮን ብር የባንክ ሒሳብ እና የቀን ወለድ ክትትል',
-      };
-    }
-    if (currentUser.role === 'admin') {
-      return {
-        amharic: 'እንኳን ደህና መጡ ፣',
-        name: `${firstName}!`,
-        subtitle: 'የፈንድ ተጠቃሚዎች እና የፋይናንስ ሞዴል ክትትል ዳሽቦርድ',
-      };
-    }
-    return {
-      amharic: 'ሰላም ፣',
-      name: `${firstName}!`,
-      subtitle: 'የመርካቶ የዕቁብ ፈንድ • የቀን 50 ብር መዋጮ እና የዕጣ ተሳትፎ',
-    };
-  };
-
-  const greeting = getGreeting();
   const recentContributions = contributions.slice(0, 3);
 
   // Build a 7-day visual streak indicator
@@ -118,51 +92,51 @@ export default function MemberDashboardScreen() {
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}>
-        {/* Top Header Bar */}
+        
+        {/* 1. Compact App Header Bar */}
         <View style={styles.topBar}>
-          <View>
-            <Text style={styles.topBarBrand}>Merkato Fund • የመርካቶ ፈንድ</Text>
+          <View style={styles.brandContainer}>
+            <Text style={styles.topBarBrand}>MERKATO FUND</Text>
             <Text style={styles.dateLabel}>ጥቅምት 7 2019 ዓ.ም • Oct 17, 2026</Text>
           </View>
           <View style={styles.topRightActions}>
+            <DemoBadge compact label="DEMO" />
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel="Replay Onboarding Walkthrough"
+              accessibilityLabel="Replay Onboarding Tour"
               onPress={() => router.push('/onboarding')}
               style={styles.headerIconButton}>
               <Text style={styles.headerIconText}>📖 Tour</Text>
             </TouchableOpacity>
-            <DemoBadge compact label="DEMO PROTOTYPE" />
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Safety Boundaries and Project Info"
+              onPress={() => router.push('/modal')}
+              style={styles.headerInfoButton}>
+              <Text style={styles.headerInfoText}>ℹ️</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Personalized Welcome Banner */}
-        <View style={styles.greetingHeader}>
-          <Text style={styles.greetingAmharic}>
-            {greeting.amharic} <Text style={styles.greetingName}>{greeting.name}</Text>
-          </Text>
-          <Text style={styles.greetingSubtitle}>{greeting.subtitle}</Text>
-        </View>
-
-        {/* Inline Persona Switcher Header */}
-        <View style={styles.personaSwitcherSection}>
-          <View style={styles.personaSectionHeader}>
-            <Text style={styles.sectionLabel}>SWITCH DEMO PERSONA</Text>
+        {/* 2. Compact Persona Switcher */}
+        <View style={styles.personaSection}>
+          <View style={styles.personaHeader}>
+            <Text style={styles.personaSectionLabel}>ACTIVE DEMO PERSONA</Text>
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel="Open Full Persona Selector Screen"
+              accessibilityLabel="Open Full Persona Selector"
               onPress={() => router.push('/persona-select')}>
-              <Text style={styles.viewAllPersonasLink}>Detailed View →</Text>
+              <Text style={styles.personaDetailLink}>All Profiles →</Text>
             </TouchableOpacity>
           </View>
           <PersonaSelector compact />
         </View>
 
-        {/* Active Persona Profile Card */}
-        <Card style={styles.profileCard} variant="elevated">
-          <View style={styles.profileHeader}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
+        {/* 3. Member Summary & 3 Responsive Metric Tiles */}
+        <Card style={styles.memberCard} variant="elevated">
+          <View style={styles.memberHeaderRow}>
+            <View style={styles.memberAvatar}>
+              <Text style={styles.memberAvatarText}>
                 {currentUser.fullName
                   .split(' ')
                   .map((n) => n[0])
@@ -170,9 +144,11 @@ export default function MemberDashboardScreen() {
                   .slice(0, 2)}
               </Text>
             </View>
-            <View style={styles.profileMeta}>
-              <View style={styles.nameRow}>
-                <Text style={styles.profileName}>{currentUser.fullName}</Text>
+            <View style={styles.memberInfo}>
+              <View style={styles.memberNameRow}>
+                <Text style={styles.memberName} numberOfLines={1}>
+                  {currentUser.fullName}
+                </Text>
                 <StatusPill
                   status={
                     currentUser.role === 'winner'
@@ -181,79 +157,83 @@ export default function MemberDashboardScreen() {
                       ? 'info'
                       : 'healthy'
                   }
-                  label={currentUser.role.toUpperCase()}
+                  label={
+                    currentUser.role === 'admin'
+                      ? 'AUDITOR'
+                      : currentUser.role === 'winner'
+                      ? 'WINNER'
+                      : 'ACTIVE MEMBER'
+                  }
                   size="small"
                 />
               </View>
-              <Text style={styles.occupationText}>{currentUser.occupation}</Text>
-              <Text style={styles.locationText}>📍 {currentUser.location}</Text>
+              <Text style={styles.memberMeta} numberOfLines={1}>
+                {currentUser.occupation} • 📍 {currentUser.location}
+              </Text>
             </View>
           </View>
 
-          {/* Quick Metrics Grid */}
-          <View style={styles.metricsGrid}>
+          {/* Role-Specific Context Banners */}
+          {currentUser.role === 'winner' && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Inspect Winner Escrow Hub"
+              onPress={() => router.push('/(tabs)/winner')}
+              style={styles.roleBannerWinner}>
+              <Text style={styles.roleBannerIcon}>🏆</Text>
+              <View style={styles.roleBannerTextCol}>
+                <Text style={styles.roleBannerWinnerTitle}>Day 45: 1,000,000 ETB Escrow View</Text>
+                <Text style={styles.roleBannerWinnerSub}>602.74 ETB/day interest • Tap to inspect hub →</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {currentUser.role === 'admin' && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Open Compliance and Pool Audit Hub"
+              onPress={() => router.push('/(tabs)/admin')}
+              style={styles.roleBannerAdmin}>
+              <Text style={styles.roleBannerIcon}>🛡️</Text>
+              <View style={styles.roleBannerTextCol}>
+                <Text style={styles.roleBannerAdminTitle}>Compliance & Pool Feasibility Model</Text>
+                <Text style={styles.roleBannerAdminSub}>24,850 member model • Tap for auditor view →</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* 3 Responsive Metric Tiles */}
+          <View style={styles.metricsRow}>
             <MetricTile
-              label="Active Streak"
-              value={`${currentUser.activeStreakDays} Days`}
+              label="Streak"
+              value={`${currentUser.activeStreakDays}d`}
               subtitle="50 ETB / day"
               highlight
             />
             <MetricTile
               label="Contributed"
               value={formatETB(currentUser.totalContributedETB)}
-              subtitle="All-time micro pool"
+              subtitle="All-time pool"
             />
             <MetricTile
-              label="Demo Balance"
+              label="Wallet"
               value={formatETB(currentUser.simulatedWalletBalanceETB)}
-              subtitle="Simulated wallet"
+              subtitle="Demo balance"
             />
           </View>
         </Card>
 
-        {/* Role-Specific Context Banners */}
-        {currentUser.role === 'winner' && (
-          <Card style={styles.bannerCardWinner} variant="elevated">
-            <View style={styles.bannerHeader}>
-              <Text style={styles.bannerTitle}>🏆 Active Winner Experience</Text>
-              <StatusPill status="locked" label="DAY 45 OF 180" size="small" />
-            </View>
-            <Text style={styles.bannerText}>
-              1,000,000 ETB locked in Commercial Bank of Ethiopia (CBE) escrow. Generating ~602.74 ETB daily interest (22% p.a.).
-            </Text>
-            <AppButton
-              title="Inspect 6-Month Escrow & Repayments →"
-              variant="gold"
-              onPress={() => router.push('/(tabs)/winner')}
-              style={{ marginTop: spacing.sm }}
-            />
-          </Card>
-        )}
-
-        {currentUser.role === 'admin' && (
-          <Card style={styles.bannerCardAdmin} variant="elevated">
-            <View style={styles.bannerHeader}>
-              <Text style={styles.bannerTitle}>🛡️ Auditor & Compliance Dashboard</Text>
-              <StatusPill status="info" label="ADMIN PREVIEW" size="small" />
-            </View>
-            <Text style={styles.bannerText}>
-              Reviewing synthetic pool feasibility assumptions, 20,000-member scale floor, and demo draw audit trails.
-            </Text>
-            <AppButton
-              title="Open Compliance & Pool Analytics →"
-              variant="outline"
-              onPress={() => router.push('/(tabs)/admin')}
-              style={{ marginTop: spacing.sm }}
-            />
-          </Card>
-        )}
-
-        {/* Daily 50 ETB Contribution Status Card - HERO SECTION */}
-        <Card style={[styles.sectionCard, !paidToday && styles.heroPaymentCard]} variant="elevated">
-          <View style={styles.cardHeaderRow}>
+        {/* 4. Dominant Contribution Action (Hero) */}
+        <Card
+          style={[styles.heroCard, !paidToday && styles.heroCardDue]}
+          variant="elevated">
+          <View style={styles.heroTopRow}>
             <View>
-              <Text style={styles.cardSectionTitle}>Daily 50 ETB Micro-Contribution</Text>
-              <Text style={styles.paymentSub}>Ethiopian Equb Digital Micro-Pool</Text>
+              <Text style={styles.heroLabel}>TODAY'S CONTRIBUTION</Text>
+              <View style={styles.heroAmountRow}>
+                <Text style={styles.heroAmount}>50.00</Text>
+                <Text style={styles.heroCurrency}>ETB</Text>
+              </View>
             </View>
             <StatusPill
               status={paidToday ? 'healthy' : 'caution'}
@@ -261,101 +241,84 @@ export default function MemberDashboardScreen() {
             />
           </View>
 
-          <Text style={styles.cardSectionDesc}>
-            {paidToday
-              ? 'Your 50 ETB daily contribution for today is completed. You are entered into tonight’s 1,000,000 ETB draw.'
-              : 'Submit today’s 50 ETB contribution to extend your 14-day streak and secure your algorithmic draw ticket.'}
-          </Text>
-
-          {/* Visual Streak Week Tracker */}
-          <View style={styles.streakTrackerContainer}>
-            <View style={styles.streakTrackerHeader}>
-              <Text style={styles.streakTrackerLabel}>7-DAY CONTRIBUTION STREAK</Text>
-              <Text style={styles.streakCountBadge}>🔥 {currentUser.activeStreakDays} Days</Text>
-            </View>
-            <View style={styles.streakDotsRow}>
+          {/* Slim Horizontal Streak Tracker */}
+          <View style={styles.slimStreakRow}>
+            <View style={styles.streakDotsList}>
               {recentDays.map((d, idx) => (
-                <View key={idx} style={styles.streakDotColumn}>
+                <View key={idx} style={styles.streakCol}>
                   <View
                     style={[
-                      styles.streakDot,
-                      d.active ? styles.streakDotActive : styles.streakDotInactive,
-                      d.isToday && styles.streakDotToday,
+                      styles.slimStreakDot,
+                      d.active ? styles.slimStreakDotActive : styles.slimStreakDotInactive,
+                      d.isToday && styles.slimStreakDotToday,
                     ]}>
-                    <Text style={styles.streakDotCheck}>
+                    <Text style={styles.slimStreakCheck}>
                       {d.active ? '✓' : d.isToday ? '!' : '·'}
                     </Text>
                   </View>
-                  <Text style={[styles.streakDayLabel, d.isToday && styles.streakDayLabelToday]}>
+                  <Text style={[styles.slimStreakLabel, d.isToday && styles.slimStreakLabelToday]}>
                     {d.day}
                   </Text>
                 </View>
               ))}
             </View>
+            <View style={styles.streakBadge}>
+              <Text style={styles.streakBadgeText}>🔥 {currentUser.activeStreakDays}d Streak</Text>
+            </View>
           </View>
 
-          {/* Action Row */}
-          <View style={styles.actionRow}>
-            {paidToday ? (
-              <AppButton
-                title="View Contribution Ledger & Receipts →"
-                variant="secondary"
-                onPress={() => router.push('/(tabs)/contribute')}
-                fullWidth
-              />
-            ) : (
-              <AppButton
-                title="Pay 50 ETB Now (Telebirr / CBE) →"
-                variant="primary"
-                onPress={() => router.push('/(tabs)/contribute')}
-                fullWidth
-              />
-            )}
-          </View>
+          {/* Primary Action Button */}
+          <AppButton
+            title={paidToday ? 'View Contribution Receipt & Ledger →' : 'Pay 50 ETB Now (Telebirr / CBE) →'}
+            variant={paidToday ? 'secondary' : 'primary'}
+            onPress={() => router.push('/(tabs)/contribute')}
+            fullWidth
+          />
         </Card>
 
-        {/* Tonight's Algorithmic Draw Card */}
-        <Card style={styles.sectionCard} variant="elevated">
-          <View style={styles.cardHeaderRow}>
-            <View>
-              <Text style={styles.cardSectionTitle}>Tonight's Algorithmic Draw</Text>
-              <Text style={styles.paymentSub}>CBE-Backed 1,000,000 ETB Pool</Text>
+        {/* 5. Compact Draw Preview */}
+        <Card style={styles.drawCard} variant="surface">
+          <View style={styles.drawHeaderRow}>
+            <View style={styles.drawHeaderLeft}>
+              <Text style={styles.drawSectionTitle}>Tonight's Algorithmic Draw</Text>
+              <Text style={styles.drawSubtitle}>Daily 20:00 EAT • Client-Side Simulation</Text>
             </View>
-            <StatusPill status="info" label="20:00:00 EAT" />
+            <StatusPill status="info" label="20:00 EAT" size="small" />
           </View>
 
-          <View style={styles.drawPrizeRow}>
-            <CurrencyDisplay
-              amountETB={activeDraw?.prizeAmountETB || 1_000_000}
-              label="Stated Draw Prize"
-              size="lg"
-              color={colors.accentGold}
-            />
-            <View style={styles.ticketBadgeContainer}>
-              <Text style={styles.ticketBadgeLabel}>Your Tickets</Text>
-              <Text style={styles.ticketBadgeCount}>
-                {activeTodayTickets.length} Active
+          <View style={styles.drawDetailsRow}>
+            <View style={styles.drawPrizeCol}>
+              <Text style={styles.drawPrizeLabel}>DEMO PRIZE POOL</Text>
+              <Text style={styles.drawPrizeAmount}>1,000,000 ETB</Text>
+            </View>
+            <View style={styles.drawTicketCol}>
+              <Text style={styles.drawTicketLabel}>YOUR TICKETS</Text>
+              <Text
+                style={[
+                  styles.drawTicketCount,
+                  activeTodayTickets.length > 0 && styles.drawTicketCountActive,
+                ]}>
+                {activeTodayTickets.length > 0
+                  ? `🎫 ${activeTodayTickets.length} Active`
+                  : '0 Active'}
               </Text>
             </View>
           </View>
 
           {activeTodayTickets.length > 0 ? (
-            <View style={styles.ticketCard}>
-              <View style={styles.ticketTopRow}>
-                <Text style={styles.ticketLabel}>ENTRY TICKET NUMBER</Text>
-                <StatusPill status="healthy" label="ELIGIBLE" size="small" />
+            <View style={styles.ticketSnippet}>
+              <View style={styles.ticketSnippetLeft}>
+                <Text style={styles.ticketSnippetLabel}>TICKET #</Text>
+                <Text style={styles.ticketSnippetNumber} numberOfLines={1}>
+                  {activeTodayTickets[0].ticketNumber}
+                </Text>
               </View>
-              <Text style={styles.ticketNumber}>
-                {activeTodayTickets[0].ticketNumber}
-              </Text>
-              <Text style={styles.ticketSub}>
-                Issued {activeTodayTickets[0].issuedAt.split('T')[1].slice(0, 5)} EAT • Client-Side Simulation Ticket
-              </Text>
+              <StatusPill status="healthy" label="ELIGIBLE" size="small" />
             </View>
           ) : (
-            <View style={styles.noTicketNotice}>
-              <Text style={styles.noTicketText}>
-                ⚠️ No ticket issued yet for today’s draw. Complete today’s 50 ETB contribution to generate your ticket.
+            <View style={styles.ticketSnippetEmpty}>
+              <Text style={styles.ticketSnippetEmptyText}>
+                ⚠️ Complete today's 50 ETB contribution to receive tonight's draw ticket.
               </Text>
             </View>
           )}
@@ -364,40 +327,49 @@ export default function MemberDashboardScreen() {
             title="Open Draw Room & Test Simulator →"
             variant="secondary"
             onPress={() => router.push('/(tabs)/draw')}
-            style={{ marginTop: spacing.md }}
+            style={{ marginTop: spacing.sm }}
           />
         </Card>
 
-        {/* Recent Activity Card */}
+        {/* 6. Recent Activity Preview (Max 3 Items) */}
         {recentContributions.length > 0 && (
-          <Card style={styles.sectionCard} variant="surface">
-            <View style={styles.cardHeaderRow}>
-              <Text style={styles.cardSectionTitle}>Recent Synthetic Activity</Text>
+          <Card style={styles.activityCard} variant="surface">
+            <View style={styles.activityHeaderRow}>
+              <Text style={styles.activityTitle}>Recent Activity</Text>
               <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityLabel="View full transaction history"
                 onPress={() => router.push('/(tabs)/contribute')}>
-                <Text style={styles.viewAllPersonasLink}>View All ({contributions.length}) →</Text>
+                <Text style={styles.activityViewAll}>View All ({contributions.length}) →</Text>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.recentList}>
-              {recentContributions.map((rec) => (
-                <View key={rec.id} style={styles.recentItemRow}>
-                  <View style={styles.recentLeft}>
-                    <Text style={styles.recentIcon}>
-                      {rec.channel === 'telebirr' ? '📱' : '🏦'}
-                    </Text>
-                    <View>
-                      <Text style={styles.recentChannel}>
+            <View style={styles.activityList}>
+              {recentContributions.map((rec, index) => (
+                <View
+                  key={rec.id}
+                  style={[
+                    styles.activityRow,
+                    index === recentContributions.length - 1 && styles.activityRowLast,
+                  ]}>
+                  <View style={styles.activityLeft}>
+                    <View style={styles.activityIconBox}>
+                      <Text style={styles.activityIcon}>
+                        {rec.channel === 'telebirr' ? '📱' : '🏦'}
+                      </Text>
+                    </View>
+                    <View style={styles.activityMetaCol}>
+                      <Text style={styles.activityChannel}>
                         {rec.channel === 'telebirr' ? 'Telebirr Micro-Pay' : 'CBE Birr'}
                       </Text>
-                      <Text style={styles.recentDate}>{rec.date} • Streak #{rec.streakDay}</Text>
+                      <Text style={styles.activityDate}>
+                        {rec.date} • Streak #{rec.streakDay}
+                      </Text>
                     </View>
                   </View>
-                  <View style={styles.recentRight}>
-                    <Text style={styles.recentAmount}>-{formatETB(rec.amountETB)}</Text>
-                    <StatusPill status="healthy" label="COMPLETED" size="small" />
+                  <View style={styles.activityRight}>
+                    <Text style={styles.activityAmount}>-{formatETB(rec.amountETB)}</Text>
+                    <StatusPill status="healthy" label="PAID" size="small" />
                   </View>
                 </View>
               ))}
@@ -405,43 +377,38 @@ export default function MemberDashboardScreen() {
           </Card>
         )}
 
-        {/* Evaluator Quick Action Hub */}
-        <Card style={styles.devCard} variant="outline">
-          <View style={styles.cardHeaderRow}>
-            <Text style={styles.devTitle}>🛠️ Evaluator Shortcuts</Text>
-            <StatusPill status="info" label="DEMO CONTROLS" size="small" />
-          </View>
-          <Text style={styles.devDesc}>
-            Quickly navigate between demonstration walkthroughs, persona roles, and automated state verification.
-          </Text>
-          <View style={styles.evaluatorButtonsRow}>
+        {/* 7. Secondary Evaluator Shortcuts */}
+        <View style={styles.evaluatorSection}>
+          <Text style={styles.evaluatorSectionLabel}>EVALUATOR QUICK ACCESS</Text>
+          <View style={styles.evaluatorRow}>
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel="Replay 3-slide Onboarding"
+              accessibilityLabel="Replay 3-Slide Walkthrough"
               onPress={() => router.push('/onboarding')}
-              style={styles.evaluatorButton}>
-              <Text style={styles.evaluatorButtonText}>📖 Tour</Text>
+              style={styles.evaluatorBtn}>
+              <Text style={styles.evaluatorBtnIcon}>📖</Text>
+              <Text style={styles.evaluatorBtnText}>Tour</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel="Open Persona Selector Screen"
               onPress={() => router.push('/persona-select')}
-              style={styles.evaluatorButton}>
-              <Text style={styles.evaluatorButtonText}>👥 Personas</Text>
+              style={styles.evaluatorBtn}>
+              <Text style={styles.evaluatorBtnIcon}>👥</Text>
+              <Text style={styles.evaluatorBtnText}>Personas</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel="Open Day 2 State Verification"
+              accessibilityLabel="Open State Verification Harness"
               onPress={() => router.push('/(tabs)/verify')}
-              style={styles.evaluatorButton}>
-              <Text style={styles.evaluatorButtonText}>🔍 Verification</Text>
+              style={styles.evaluatorBtn}>
+              <Text style={styles.evaluatorBtnIcon}>🔍</Text>
+              <Text style={styles.evaluatorBtnText}>Verification</Text>
             </TouchableOpacity>
           </View>
-        </Card>
+        </View>
 
-        {/* Mandatory Safety Notice */}
+        {/* 8. Compact Prototype Disclosure */}
         <DisclaimerNotice />
       </ScrollView>
     </SafeAreaView>
@@ -454,437 +421,566 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dark.background,
   },
   container: {
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.huge,
-    maxWidth: 640,
+    maxWidth: 600,
     alignSelf: 'center',
     width: '100%',
   },
+
+  // 1. Top Bar
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: spacing.xs,
     marginBottom: spacing.xs,
+  },
+  brandContainer: {
+    flex: 1,
   },
   topBarBrand: {
     fontFamily: fontFamilies.sans,
     color: colors.primaryLight,
-    fontWeight: '700',
-    fontSize: 13,
-    letterSpacing: 0.3,
+    fontWeight: '800',
+    fontSize: 15,
+    letterSpacing: 0.5,
   },
   dateLabel: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 11,
+    marginTop: 1,
   },
   topRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   headerIconButton: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: radii.sm,
     backgroundColor: colors.dark.surfaceElevated,
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
+    minHeight: 32,
+    justifyContent: 'center',
   },
   headerIconText: {
     fontFamily: fontFamilies.sans,
     color: colors.accentGold,
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 11,
   },
-  greetingHeader: {
-    marginTop: spacing.xs,
-    marginBottom: spacing.md,
+  headerInfoButton: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.sm,
+    backgroundColor: colors.dark.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.dark.surfaceBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  greetingAmharic: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textPrimary,
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '700',
+  headerInfoText: {
+    fontSize: 14,
   },
-  greetingName: {
-    color: colors.accentGold,
-    fontWeight: '700',
+
+  // 2. Persona Section
+  personaSection: {
+    marginBottom: spacing.sm,
   },
-  greetingSubtitle: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 3,
-  },
-  personaSwitcherSection: {
-    marginBottom: spacing.md,
-  },
-  personaSectionHeader: {
+  personaHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
+    paddingHorizontal: 2,
   },
-  sectionLabel: {
+  personaSectionLabel: {
     fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
+    color: colors.dark.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
     letterSpacing: 0.6,
   },
-  viewAllPersonasLink: {
+  personaDetailLink: {
     fontFamily: fontFamilies.sans,
     color: colors.accentGold,
     fontWeight: '600',
-    fontSize: 12,
+    fontSize: 11,
   },
-  profileCard: {
-    marginBottom: spacing.md,
+
+  // 3. Member Card
+  memberCard: {
+    marginBottom: spacing.sm,
+    padding: spacing.md,
     backgroundColor: colors.dark.surface,
-    borderColor: colors.dark.surfaceBorder,
   },
-  profileHeader: {
+  memberHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  memberAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: colors.primaryDark,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
-    borderWidth: 2,
+    marginRight: spacing.sm,
+    borderWidth: 1.5,
     borderColor: colors.primaryLight,
   },
-  avatarText: {
+  memberAvatarText: {
     fontFamily: fontFamilies.sans,
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '700',
   },
-  profileMeta: {
+  memberInfo: {
     flex: 1,
   },
-  nameRow: {
+  memberNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  profileName: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textPrimary,
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  occupationText: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontSize: 14,
-    marginTop: 2,
-  },
-  locationText: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textMuted,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  bannerCardWinner: {
-    marginBottom: spacing.md,
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    borderColor: colors.accentGoldDark,
-    borderWidth: 1.5,
-  },
-  bannerCardAdmin: {
-    marginBottom: spacing.md,
-    backgroundColor: 'rgba(0, 114, 206, 0.08)',
-    borderColor: colors.telebirr,
-    borderWidth: 1.5,
-  },
-  bannerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  bannerTitle: {
+  memberName: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textPrimary,
     fontSize: 16,
     fontWeight: '700',
+    flex: 1,
+    marginRight: spacing.xs,
   },
-  bannerText: {
+  memberMeta: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  roleBannerWinner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderColor: colors.accentGoldDark,
+    borderWidth: 1,
+    borderRadius: radii.md,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+    gap: spacing.xs,
+  },
+  roleBannerAdmin: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 114, 206, 0.1)',
+    borderColor: colors.telebirr,
+    borderWidth: 1,
+    borderRadius: radii.md,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+    gap: spacing.xs,
+  },
+  roleBannerIcon: {
+    fontSize: 20,
+  },
+  roleBannerTextCol: {
+    flex: 1,
+  },
+  roleBannerWinnerTitle: {
+    fontFamily: fontFamilies.sans,
+    color: colors.accentGold,
+    fontWeight: '700',
     fontSize: 13,
-    lineHeight: 18,
   },
-  sectionCard: {
-    marginBottom: spacing.md,
+  roleBannerWinnerSub: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textSecondary,
+    fontSize: 11,
+    marginTop: 1,
   },
-  heroPaymentCard: {
-    borderColor: 'rgba(13, 148, 136, 0.4)',
-    backgroundColor: 'rgba(13, 148, 136, 0.06)',
+  roleBannerAdminTitle: {
+    fontFamily: fontFamilies.sans,
+    color: colors.telebirr,
+    fontWeight: '700',
+    fontSize: 13,
   },
-  cardHeaderRow: {
+  roleBannerAdminSub: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textSecondary,
+    fontSize: 11,
+    marginTop: 1,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+
+  // 4. Contribution Hero Card
+  heroCard: {
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.dark.surface,
+  },
+  heroCardDue: {
+    borderColor: colors.primary,
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+  },
+  heroTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
-  cardSectionTitle: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textPrimary,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  paymentSub: {
+  heroLabel: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
   },
-  cardSectionDesc: {
+  heroAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginTop: 2,
+    gap: 4,
+  },
+  heroAmount: {
     fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: spacing.md,
-    marginTop: 2,
+    fontVariant: ['tabular-nums'],
+    color: colors.dark.textPrimary,
+    fontSize: 28,
+    lineHeight: 32,
+    fontWeight: '800',
   },
-  streakTrackerContainer: {
+  heroCurrency: {
+    fontFamily: fontFamilies.sans,
+    color: colors.primaryLight,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  slimStreakRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: colors.dark.surfaceElevated,
     borderRadius: radii.md,
-    padding: spacing.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
     marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
   },
-  streakTrackerHeader: {
+  streakDotsList: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 8,
+  },
+  streakCol: {
     alignItems: 'center',
-    marginBottom: 10,
+    gap: 3,
   },
-  streakTrackerLabel: {
-    fontFamily: fontFamilies.sans,
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.dark.textSecondary,
-    letterSpacing: 0.5,
-  },
-  streakCountBadge: {
-    fontFamily: fontFamilies.sans,
-    color: colors.accentGold,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  streakDotsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  streakDotColumn: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  streakDot: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  slimStreakDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  streakDotActive: {
+  slimStreakDotActive: {
     backgroundColor: colors.primary,
   },
-  streakDotInactive: {
+  slimStreakDotInactive: {
     backgroundColor: colors.dark.surface,
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
   },
-  streakDotToday: {
+  slimStreakDotToday: {
     borderWidth: 2,
     borderColor: colors.accentGold,
   },
-  streakDotCheck: {
+  slimStreakCheck: {
     fontFamily: fontFamilies.sans,
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 12,
-  },
-  streakDayLabel: {
-    fontFamily: fontFamilies.sans,
     fontSize: 11,
+    lineHeight: 12,
+  },
+  slimStreakLabel: {
+    fontFamily: fontFamilies.sans,
+    fontSize: 10,
     color: colors.dark.textMuted,
   },
-  streakDayLabelToday: {
+  slimStreakLabelToday: {
     color: colors.accentGold,
     fontWeight: '700',
   },
-  actionRow: {
-    marginTop: spacing.xs,
-  },
-  drawPrizeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: spacing.md,
-  },
-  ticketBadgeContainer: {
-    alignItems: 'flex-end',
-  },
-  ticketBadgeLabel: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textMuted,
-    fontSize: 11,
-    textTransform: 'uppercase',
-  },
-  ticketBadgeCount: {
-    fontFamily: fontFamilies.sans,
-    color: colors.primaryLight,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  ticketCard: {
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
-    borderRadius: radii.md,
+  streakBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radii.sm,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(13, 148, 136, 0.35)',
-    padding: spacing.md,
-    marginBottom: spacing.xs,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
   },
-  ticketTopRow: {
+  streakBadgeText: {
+    fontFamily: fontFamilies.sans,
+    color: colors.accentGold,
+    fontWeight: '700',
+    fontSize: 11,
+  },
+
+  // 5. Draw Card
+  drawCard: {
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+  },
+  drawHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: spacing.sm,
   },
-  ticketLabel: {
+  drawHeaderLeft: {
+    flex: 1,
+    marginRight: spacing.xs,
+  },
+  drawSectionTitle: {
     fontFamily: fontFamilies.sans,
-    color: colors.primaryLight,
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.6,
-  },
-  ticketNumber: {
-    fontFamily: fontFamilies.mono,
-    color: colors.accentGold,
-    fontSize: 20,
+    color: colors.dark.textPrimary,
+    fontSize: 15,
     fontWeight: '700',
-    letterSpacing: 1,
-    marginVertical: 4,
   },
-  ticketSub: {
+  drawSubtitle: {
     fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontSize: 12,
+    color: colors.dark.textMuted,
+    fontSize: 11,
+    marginTop: 1,
   },
-  noTicketNotice: {
+  drawDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: colors.dark.surfaceElevated,
     borderRadius: radii.md,
-    padding: spacing.md,
+    padding: spacing.sm,
+    marginBottom: spacing.xs,
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
-    marginBottom: spacing.xs,
   },
-  noTicketText: {
+  drawPrizeCol: {
+    flex: 1,
+  },
+  drawPrizeLabel: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
-  recentList: {
-    gap: spacing.xs,
+  drawPrizeAmount: {
+    fontFamily: fontFamilies.sans,
+    fontVariant: ['tabular-nums'],
+    color: colors.accentGold,
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: '800',
+    marginTop: 2,
   },
-  recentItemRow: {
+  drawTicketCol: {
+    alignItems: 'flex-end',
+  },
+  drawTicketLabel: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textMuted,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  drawTicketCount: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textSecondary,
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  drawTicketCountActive: {
+    color: colors.status.healthy,
+  },
+  ticketSnippet: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.divider,
+    backgroundColor: '#0F1E19',
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: 'rgba(13, 148, 136, 0.4)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    marginTop: 4,
   },
-  recentLeft: {
+  ticketSnippetLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 6,
+    flex: 1,
+    marginRight: spacing.xs,
   },
-  recentIcon: {
-    fontSize: 20,
-  },
-  recentChannel: {
+  ticketSnippetLabel: {
     fontFamily: fontFamilies.sans,
-    fontSize: 14,
-    fontWeight: '600',
+    color: colors.primaryLight,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  ticketSnippetNumber: {
+    fontFamily: fontFamilies.mono,
     color: colors.dark.textPrimary,
-  },
-  recentDate: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textMuted,
     fontSize: 12,
+    fontWeight: '600',
+  },
+  ticketSnippetEmpty: {
+    backgroundColor: '#1C1608',
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    marginTop: 4,
+  },
+  ticketSnippetEmptyText: {
+    fontFamily: fontFamilies.sans,
+    color: colors.accentGoldLight,
+    fontSize: 11,
+    lineHeight: 15,
+  },
+
+  // 6. Recent Activity
+  activityCard: {
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+  },
+  activityHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  activityTitle: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  activityViewAll: {
+    fontFamily: fontFamilies.sans,
+    color: colors.accentGold,
+    fontWeight: '600',
+    fontSize: 11,
+  },
+  activityList: {
     marginTop: 2,
   },
-  recentRight: {
-    alignItems: 'flex-end',
-    gap: 2,
-  },
-  recentAmount: {
-    fontFamily: fontFamilies.sans,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-    color: colors.dark.textPrimary,
-    fontSize: 15,
-  },
-  devCard: {
-    marginBottom: spacing.md,
-    backgroundColor: colors.dark.surface,
-    borderColor: colors.dark.surfaceBorder,
-  },
-  devTitle: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textPrimary,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  devDesc: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
-    marginVertical: 4,
-  },
-  evaluatorButtonsRow: {
+  activityRow: {
     flexDirection: 'row',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  evaluatorButton: {
-    flex: 1,
-    minHeight: 40,
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderRadius: radii.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  activityRowLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 2,
+  },
+  activityLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: spacing.xs,
+  },
+  activityIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.dark.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: spacing.xs,
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
   },
-  evaluatorButtonText: {
+  activityIcon: {
+    fontSize: 15,
+  },
+  activityMetaCol: {
+    flex: 1,
+  },
+  activityChannel: {
     fontFamily: fontFamilies.sans,
-    fontSize: 12,
+    color: colors.dark.textPrimary,
+    fontSize: 13,
     fontWeight: '600',
-    color: colors.accentGold,
-    textAlign: 'center',
+  },
+  activityDate: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textMuted,
+    fontSize: 11,
+    marginTop: 1,
+  },
+  activityRight: {
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  activityAmount: {
+    fontFamily: fontFamilies.sans,
+    fontVariant: ['tabular-nums'],
+    color: colors.dark.textPrimary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  // 7. Evaluator Section
+  evaluatorSection: {
+    marginVertical: spacing.xs,
+    paddingVertical: spacing.xs,
+  },
+  evaluatorSectionLabel: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    marginBottom: 6,
+    paddingHorizontal: 2,
+  },
+  evaluatorRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  evaluatorBtn: {
+    flex: 1,
+    minHeight: 40,
+    backgroundColor: colors.dark.surfaceElevated,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.dark.surfaceBorder,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 6,
+  },
+  evaluatorBtnIcon: {
+    fontSize: 14,
+  },
+  evaluatorBtnText: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
   },
 });
-

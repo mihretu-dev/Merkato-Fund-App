@@ -76,6 +76,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="contribute"
         options={{
+          headerShown: false,
           title: 'Contribute',
           headerTitle: 'Daily Micro-Contribution',
           tabBarIcon: ({ color }) => (

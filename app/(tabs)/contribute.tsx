@@ -1,13 +1,14 @@
 /**
  * Merkato Fund — Contribution & Payment Screen
  *
- * Implements the complete Day 4 daily 50 ETB contribution flow:
- * 1. Review daily amount and contribution status (Due vs Paid).
- * 2. Select simulated payment method (Telebirr, CBE Birr, Awash Birr).
- * 3. Deliberate Review & Confirmation modal with demo reference preview.
- * 4. Synthetic contribution processing with rapid-tap debounce and store sync.
- * 5. Success state displaying issued draw ticket, streak update, and navigation shortcuts.
- * 6. Detailed contribution ledger displaying deterministic synthetic records.
+ * Premium mobile payment experience:
+ * 1. Compact screen heading with demo checkout indicator
+ * 2. Dominant 50.00 ETB payment amount & dynamic Due/Paid status
+ * 3. Restrained payment method selection (Telebirr, CBE Birr, Awash Birr)
+ * 4. Prominent Review & Confirm action button
+ * 5. Refined confirmation modal and success receipt flow
+ * 6. Secondary contribution history ledger with tabular numerical alignment
+ * 7. Concise prototype disclosures and safe area handling
  */
 
 import React, { useState } from 'react';
@@ -16,23 +17,20 @@ import {
   ScrollView,
   View,
   Text,
-  SafeAreaView,
   TouchableOpacity,
   Modal,
   Alert,
-  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/tokens';
 import {
   Card,
   AppButton,
-  CurrencyDisplay,
   DemoBadge,
   StatusPill,
   DisclaimerNotice,
-  MetricTile,
 } from '@/src/components/ui';
 
 import { useUserStore } from '@/src/stores/useUserStore';
@@ -79,6 +77,7 @@ const CHANNELS: ChannelOption[] = [
 
 export default function ContributeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const currentUser = useUserStore((s) => s.currentUser);
   const updateCurrentUser = useUserStore((s) => s.updateCurrentUser);
@@ -151,201 +150,213 @@ export default function ContributeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[
+          styles.container,
+          { paddingBottom: Math.max(insets.bottom, 16) + spacing.xl },
+        ]}
         showsVerticalScrollIndicator={false}>
-        {/* Top Header */}
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.amharicHeader}>የዕለት መዋጮ ማዕከል</Text>
+
+        {/* 1. Compact Screen Heading */}
+        <View style={styles.topBar}>
+          <View style={styles.topBarLeft}>
             <Text style={styles.screenTitle}>Daily Contribution</Text>
             <Text style={styles.screenSubtitle}>
-              50.00 ETB / day • Equb Micro-Contribution Pool
+              Daily 50 ETB micro-contribution • Ethiopian Equb Pool
             </Text>
           </View>
-          <DemoBadge label="SIMULATED CHECKOUT" />
+          <DemoBadge compact label="SIMULATED" />
         </View>
 
-        {/* Status Metrics Bar */}
-        <View style={styles.metricsRow}>
-          <MetricTile
-            label="Daily Amount"
-            value="50.00 ETB"
-            subtitle="Standard micro-payment"
-            highlight
-          />
-          <MetricTile
-            label="Current Streak"
-            value={`${currentUser.activeStreakDays} Days`}
-            subtitle={paidToday ? 'Completed today' : '15 days if paid today'}
-          />
-          <MetricTile
-            label="Simulated Balance"
-            value={formatETB(currentUser.simulatedWalletBalanceETB)}
-            subtitle="Demo wallet fund"
-          />
-        </View>
-
-        {/* Primary Action Card: Due vs Paid */}
-        <Card style={styles.actionCard} variant="elevated">
-          <View style={styles.cardHeader}>
+        {/* 2. Primary Payment Amount & Status Hero Card */}
+        <Card
+          style={[styles.heroCard, !paidToday && styles.heroCardDue]}
+          variant="elevated">
+          <View style={styles.heroTopRow}>
             <View>
-              <Text style={styles.cardTitle}>Today's Contribution Status</Text>
-              <Text style={styles.cardDate}>Cycle Date: 2026-10-17 (ጥቅምት 7 2019 ዓ.ም)</Text>
+              <Text style={styles.heroLabel}>TODAY'S CONTRIBUTION AMOUNT</Text>
+              <View style={styles.heroAmountRow}>
+                <Text style={styles.heroAmount}>50.00</Text>
+                <Text style={styles.heroCurrency}>ETB</Text>
+              </View>
             </View>
             <StatusPill
               status={paidToday ? 'healthy' : 'caution'}
-              label={paidToday ? 'PAID FOR TODAY' : 'PAYMENT DUE'}
+              label={paidToday ? 'PAID TODAY' : 'DUE TODAY'}
             />
           </View>
 
-          {paidToday ? (
-            /* Completed State View */
-            <View style={styles.completedNotice}>
-              <View style={styles.completedBadgeRow}>
-                <Text style={styles.completedIcon}>✨</Text>
-                <Text style={styles.completedTitle}>50 ETB Settled for Today</Text>
-              </View>
-              <Text style={styles.completedDesc}>
-                Your 50 ETB daily contribution for today (2026-10-17) is completed. Your active streak of{' '}
-                <Text style={styles.boldText}>{currentUser.activeStreakDays} days</Text> is maintained, and your algorithmic draw ticket is secured in tonight’s 1,000,000 ETB draw pool.
-              </Text>
+          <Text style={styles.heroDescription}>
+            {paidToday
+              ? `✓ 50 ETB settled for today (2026-10-17). Active streak maintained at ${currentUser.activeStreakDays} days & entered into tonight's 1,000,000 ETB draw.`
+              : `Contribute 50 ETB to maintain your ${currentUser.activeStreakDays}-day streak and secure 1 algorithmic ticket for tonight's 1,000,000 ETB CBE escrow draw.`}
+          </Text>
 
-              <View style={styles.completedInfoBox}>
-                <Text style={styles.completedInfoLabel}>POOL INTEGRITY POLICY:</Text>
-                <Text style={styles.completedInfoText}>
-                  Duplicate daily contributions are blocked to preserve fair participation and prevent unintended overcharges. The next contribution window opens tomorrow at 00:00:00 EAT.
-                </Text>
-              </View>
-
-              <View style={styles.completedButtonsRow}>
-                <AppButton
-                  title="View in Tonight's Draw Room →"
-                  variant="primary"
-                  onPress={() => router.push('/(tabs)/draw')}
-                  style={{ flex: 1 }}
-                />
-                <AppButton
-                  title="Dashboard"
-                  variant="outline"
-                  onPress={() => router.push('/(tabs)')}
-                  style={{ flex: 1 }}
-                />
-              </View>
+          {/* Quick Context Chips */}
+          <View style={styles.chipsRow}>
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>🔥 Streak: {currentUser.activeStreakDays} Days</Text>
             </View>
-          ) : (
-            /* Unpaid State: Method Selection & Review Trigger */
-            <>
-              <Text style={styles.channelSectionLabel}>
-                CHOOSE SIMULATED PAYMENT CHANNEL:
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>
+                💼 Wallet: {formatETB(currentUser.simulatedWalletBalanceETB)}
               </Text>
-
-              <View style={styles.channelList}>
-                {CHANNELS.map((ch) => {
-                  const isSelected = selectedChannel === ch.id;
-                  return (
-                    <TouchableOpacity
-                      key={ch.id}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Select ${ch.label} payment channel`}
-                      accessibilityState={{ selected: isSelected }}
-                      activeOpacity={0.8}
-                      onPress={() => setSelectedChannel(ch.id)}
-                      style={[
-                        styles.channelItem,
-                        isSelected && {
-                          borderColor: ch.color,
-                          backgroundColor: '#0E2429',
-                        },
-                      ]}>
-                      <View style={styles.channelLeft}>
-                        <View style={[styles.channelDot, { backgroundColor: ch.color }]}>
-                          <Text style={styles.channelIconText}>{ch.icon}</Text>
-                        </View>
-                        <View style={styles.channelMeta}>
-                          <View style={styles.channelTitleRow}>
-                            <Text style={styles.channelName}>{ch.label}</Text>
-                            <Text style={styles.channelAmharic}>{ch.amharicLabel}</Text>
-                          </View>
-                          <Text style={styles.channelDesc}>{ch.desc}</Text>
-                        </View>
-                      </View>
-
-                      <View style={styles.channelRight}>
-                        <View
-                          style={[
-                            styles.radioCircle,
-                            isSelected && { borderColor: ch.color },
-                          ]}>
-                          {isSelected && (
-                            <View
-                              style={[
-                                styles.radioDot,
-                                { backgroundColor: ch.color },
-                              ]}
-                            />
-                          )}
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <Card style={styles.safetyCallout} variant="surface">
-                <Text style={styles.safetyCalloutTitle}>🛡️ Simulation Notice</Text>
-                <Text style={styles.safetyCalloutText}>
-                  Payment channels above are demonstration mockups. No real mobile money API (Telebirr USSD, CBE Birr debit) is connected, and no live funds are withdrawn.
-                </Text>
-              </Card>
-
-              <AppButton
-                title={`Review & Pay 50 ETB via ${selectedChannelInfo.label} →`}
-                variant="primary"
-                onPress={handleOpenReview}
-                style={{ marginTop: spacing.md }}
-              />
-            </>
-          )}
+            </View>
+          </View>
         </Card>
 
-        {/* Synthetic Contribution History Ledger */}
-        <Card style={styles.historyCard} variant="elevated">
-          <View style={styles.historyHeader}>
-            <View>
-              <Text style={styles.cardTitle}>Contribution History Ledger</Text>
-              <Text style={styles.cardSubtitle}>
-                Verified synthetic contribution records for {currentUser.fullName}.
+        {/* 3. Conditional Flow: Paid Today vs Payment Method Selection */}
+        {paidToday ? (
+          /* Already Paid View */
+          <Card style={styles.settledCard} variant="surface">
+            <View style={styles.settledHeaderRow}>
+              <Text style={styles.settledIcon}>✨</Text>
+              <View style={styles.settledTextCol}>
+                <Text style={styles.settledTitle}>50 ETB Settled for Today</Text>
+                <Text style={styles.settledSub}>
+                  Your daily contribution is complete. Duplicate payments are blocked to protect your simulated wallet.
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.settledActionsRow}>
+              <AppButton
+                title="View in Tonight's Draw Room →"
+                variant="primary"
+                onPress={() => router.push('/(tabs)/draw')}
+                style={{ flex: 1 }}
+              />
+              <AppButton
+                title="Dashboard"
+                variant="outline"
+                onPress={() => router.push('/(tabs)')}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </Card>
+        ) : (
+          /* Unpaid View: Channel Selection & Primary Action */
+          <Card style={styles.selectionCard} variant="elevated">
+            <Text style={styles.sectionHeaderLabel}>
+              SELECT SIMULATED PAYMENT CHANNEL
+            </Text>
+
+            <View style={styles.channelList}>
+              {CHANNELS.map((ch) => {
+                const isSelected = selectedChannel === ch.id;
+                return (
+                  <TouchableOpacity
+                    key={ch.id}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Select ${ch.label} payment channel`}
+                    accessibilityState={{ checked: isSelected }}
+                    activeOpacity={0.8}
+                    onPress={() => setSelectedChannel(ch.id)}
+                    style={[
+                      styles.channelItem,
+                      isSelected && styles.channelItemSelected,
+                    ]}>
+                    <View style={styles.channelLeft}>
+                      <View style={[styles.channelIconBox, isSelected && styles.channelIconBoxSelected]}>
+                        <Text style={styles.channelIcon}>{ch.icon}</Text>
+                      </View>
+                      <View style={styles.channelMeta}>
+                        <View style={styles.channelNameRow}>
+                          <Text style={[styles.channelName, isSelected && styles.channelNameSelected]}>
+                            {ch.label}
+                          </Text>
+                          <Text style={styles.channelAmharic}>{ch.amharicLabel}</Text>
+                        </View>
+                        <Text style={styles.channelDesc}>{ch.desc}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.channelRight}>
+                      <View
+                        style={[
+                          styles.radioCircle,
+                          isSelected && styles.radioCircleSelected,
+                        ]}>
+                        {isSelected && <View style={styles.radioDot} />}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Simulation Notice Callout */}
+            <View style={styles.simNoticeCallout}>
+              <Text style={styles.simNoticeIcon}>🛡️</Text>
+              <Text style={styles.simNoticeText}>
+                Simulation Notice: Payment channels above are offline demonstration mockups. No real mobile money API (Telebirr USSD / CBE debit) is connected, and no live funds are debited.
               </Text>
             </View>
-            <View style={styles.historyCountBadge}>
-              <Text style={styles.historyCountText}>{contributions.length} Records</Text>
+
+            {/* Primary Action Button */}
+            <AppButton
+              title={`Review 50 ETB via ${selectedChannelInfo.label} →`}
+              variant="primary"
+              onPress={handleOpenReview}
+              style={{ marginTop: spacing.md }}
+            />
+          </Card>
+        )}
+
+        {/* 4. Secondary Section: Contribution History Ledger */}
+        <Card style={styles.historyCard} variant="surface">
+          <View style={styles.historyHeaderRow}>
+            <View>
+              <Text style={styles.historyTitle}>Contribution History</Text>
+              <Text style={styles.historySubtitle}>
+                Verified synthetic contribution records for {currentUser.fullName}
+              </Text>
+            </View>
+            <View style={styles.historyBadge}>
+              <Text style={styles.historyBadgeText}>{contributions.length} Records</Text>
             </View>
           </View>
 
           <View style={styles.historyList}>
-            {contributions.map((item) => (
-              <View key={item.id} style={styles.historyItem}>
+            {contributions.map((item, index) => (
+              <View
+                key={item.id}
+                style={[
+                  styles.historyItemRow,
+                  index === contributions.length - 1 && styles.historyItemRowLast,
+                ]}>
                 <View style={styles.historyItemLeft}>
-                  <View style={styles.itemHeaderRow}>
-                    <Text style={styles.historyChannelBadge}>
+                  <View style={styles.historyItemIconBox}>
+                    <Text style={styles.historyItemIcon}>
                       {item.channel === 'telebirr'
-                        ? '📱 Telebirr'
+                        ? '📱'
                         : item.channel === 'cbe_birr'
-                        ? '🏦 CBE Birr'
-                        : '💳 Awash Birr'}
+                        ? '🏦'
+                        : '💳'}
                     </Text>
-                    <Text style={styles.historyDate}>{item.date}</Text>
                   </View>
-                  <Text style={styles.historyRef}>{item.transactionReference}</Text>
-                  <Text style={styles.historyStreakLabel}>
-                    Maintained Streak Day #{item.streakDay}
-                  </Text>
+                  <View style={styles.historyItemMeta}>
+                    <Text style={styles.historyItemChannel}>
+                      {item.channel === 'telebirr'
+                        ? 'Telebirr Micro-Pay'
+                        : item.channel === 'cbe_birr'
+                        ? 'CBE Birr'
+                        : 'Awash Birr'}
+                    </Text>
+                    <Text style={styles.historyItemDate}>
+                      {item.date} • Streak Day #{item.streakDay}
+                    </Text>
+                    <Text style={styles.historyItemRef} numberOfLines={1}>
+                      {item.transactionReference}
+                    </Text>
+                  </View>
                 </View>
 
                 <View style={styles.historyItemRight}>
-                  <Text style={styles.historyAmount}>-{formatETB(item.amountETB)}</Text>
+                  <Text style={styles.historyItemAmount}>
+                    -{formatETB(item.amountETB)}
+                  </Text>
                   <StatusPill status="healthy" label="COMPLETED" size="small" />
                 </View>
               </View>
@@ -353,12 +364,12 @@ export default function ContributeScreen() {
           </View>
         </Card>
 
-        {/* Mandatory Safety Notice */}
+        {/* 5. Prototype Disclaimer */}
         <DisclaimerNotice />
       </ScrollView>
 
       {/* ------------------------------------------------------------- */}
-      {/* 1. Review & Deliberate Confirmation Modal                     */}
+      {/* Review & Deliberate Confirmation Modal                        */}
       {/* ------------------------------------------------------------- */}
       <Modal
         visible={showReviewModal}
@@ -375,7 +386,7 @@ export default function ContributeScreen() {
                 <Text style={styles.modalAmharic}>የክፍያ ማረጋገጫ</Text>
                 <Text style={styles.modalTitle}>Review Contribution</Text>
               </View>
-              <DemoBadge label="SIMULATION REVIEW" />
+              <DemoBadge compact label="SIMULATION" />
             </View>
 
             {/* Amount Summary */}
@@ -408,14 +419,14 @@ export default function ContributeScreen() {
 
               <View style={styles.reviewTableRow}>
                 <Text style={styles.reviewTableLabel}>New Streak Status:</Text>
-                <Text style={[styles.reviewTableValue, { color: colors.accentGold }]}>
+                <Text style={[styles.reviewTableValue, { color: colors.accentGold, fontWeight: '700' }]}>
                   🔥 {currentUser.activeStreakDays + 1} Consecutive Days
                 </Text>
               </View>
 
               <View style={styles.reviewTableRow}>
                 <Text style={styles.reviewTableLabel}>Draw Entitlement:</Text>
-                <Text style={[styles.reviewTableValue, { color: colors.primaryLight }]}>
+                <Text style={[styles.reviewTableValue, { color: colors.primaryLight, fontWeight: '700' }]}>
                   🎟️ 1 Ticket in Tonight’s 1M ETB Draw
                 </Text>
               </View>
@@ -458,7 +469,7 @@ export default function ContributeScreen() {
       </Modal>
 
       {/* ------------------------------------------------------------- */}
-      {/* 2. Success Celebration Modal                                  */}
+      {/* Success Receipt Celebration Modal                             */}
       {/* ------------------------------------------------------------- */}
       <Modal
         visible={successData !== null}
@@ -552,80 +563,167 @@ export default function ContributeScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  screen: {
     flex: 1,
     backgroundColor: colors.dark.background,
   },
   container: {
-    padding: spacing.md,
-    paddingBottom: spacing.huge,
-    maxWidth: 640,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xs,
+    maxWidth: 600,
     alignSelf: 'center',
     width: '100%',
   },
-  headerRow: {
+
+  // 1. Top Bar
+  topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.xs,
   },
-  amharicHeader: {
-    fontFamily: fontFamilies.sans,
-    color: colors.accentGold,
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 2,
+  topBarLeft: {
+    flex: 1,
+    marginRight: spacing.xs,
   },
   screenTitle: {
     fontFamily: fontFamilies.sans,
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: colors.dark.textPrimary,
   },
   screenSubtitle: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 2,
   },
-  metricsRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
+
+  // 2. Hero Card
+  heroCard: {
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.dark.surface,
   },
-  actionCard: {
-    marginBottom: spacing.md,
+  heroCardDue: {
+    borderColor: colors.primary,
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(13, 148, 136, 0.08)',
   },
-  cardHeader: {
+  heroTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
-  cardTitle: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textPrimary,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  cardDate: {
+  heroLabel: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
   },
-  channelSectionLabel: {
+  heroAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginTop: 2,
+    gap: 4,
+  },
+  heroAmount: {
+    fontFamily: fontFamilies.sans,
+    fontVariant: ['tabular-nums'],
+    color: colors.dark.textPrimary,
+    fontSize: 28,
+    lineHeight: 32,
+    fontWeight: '800',
+  },
+  heroCurrency: {
+    fontFamily: fontFamilies.sans,
+    color: colors.primaryLight,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  heroDescription: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: spacing.sm,
+  },
+  chipsRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  chip: {
+    backgroundColor: colors.dark.surfaceElevated,
+    borderRadius: radii.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: colors.dark.surfaceBorder,
+  },
+  chipText: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+
+  // 3. Settled State Card
+  settledCard: {
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    borderColor: colors.status.healthy,
+    borderWidth: 1,
+    backgroundColor: 'rgba(16, 185, 129, 0.06)',
+  },
+  settledHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  settledIcon: {
+    fontSize: 24,
+  },
+  settledTextCol: {
+    flex: 1,
+  },
+  settledTitle: {
+    fontFamily: fontFamilies.sans,
+    color: colors.status.healthy,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  settledSub: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
     fontSize: 12,
-    fontWeight: '600',
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  settledActionsRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+
+  // 4. Selection Card
+  selectionCard: {
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+  },
+  sectionHeaderLabel: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
     letterSpacing: 0.6,
-    marginTop: spacing.xs,
     marginBottom: spacing.sm,
   },
   channelList: {
@@ -637,248 +735,232 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: colors.dark.surfaceElevated,
     borderRadius: radii.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
-    padding: spacing.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 12,
     minHeight: 56,
+  },
+  channelItemSelected: {
+    borderColor: colors.primaryLight,
+    backgroundColor: '#0F2622',
   },
   channelLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: spacing.xs,
   },
-  channelDot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  channelIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.dark.surface,
+    borderWidth: 1,
+    borderColor: colors.dark.surfaceBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginRight: spacing.sm,
   },
-  channelIconText: {
-    fontSize: 20,
+  channelIconBoxSelected: {
+    borderColor: colors.primaryLight,
+  },
+  channelIcon: {
+    fontSize: 18,
   },
   channelMeta: {
     flex: 1,
   },
-  channelTitleRow: {
+  channelNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   channelName: {
     fontFamily: fontFamilies.sans,
-    fontWeight: '700',
     color: colors.dark.textPrimary,
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  channelNameSelected: {
+    color: colors.primaryLight,
   },
   channelAmharic: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
-    fontSize: 13,
+    fontSize: 12,
   },
   channelDesc: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 11,
     marginTop: 2,
   },
   channelRight: {
-    marginLeft: spacing.sm,
+    paddingLeft: spacing.xs,
   },
   radioCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
-    borderColor: colors.dark.surfaceBorder,
+    borderColor: colors.dark.textMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  radioCircleSelected: {
+    borderColor: colors.primaryLight,
+  },
   radioDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primaryLight,
   },
-  safetyCallout: {
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    borderColor: 'rgba(245, 158, 11, 0.25)',
-    borderWidth: 1,
-    marginTop: spacing.md,
-    padding: spacing.md,
-  },
-  safetyCalloutTitle: {
-    fontFamily: fontFamilies.sans,
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.accentGold,
-    marginBottom: 3,
-  },
-  safetyCalloutText: {
-    fontFamily: fontFamilies.sans,
-    fontSize: 12,
-    lineHeight: 17,
-    color: colors.dark.textSecondary,
-  },
-  completedNotice: {
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    borderRadius: radii.md,
-    padding: spacing.md,
-    marginTop: spacing.xs,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-  },
-  completedBadgeRow: {
+  simNoticeCallout: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  completedIcon: {
-    fontSize: 20,
-  },
-  completedTitle: {
-    fontFamily: fontFamilies.sans,
-    color: colors.primaryLight,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  completedDesc: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    lineHeight: 20,
-    fontSize: 14,
-  },
-  boldText: {
-    color: colors.dark.textPrimary,
-    fontWeight: '700',
-  },
-  completedInfoBox: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: radii.sm,
-    padding: spacing.sm + 2,
-    marginVertical: spacing.md,
-  },
-  completedInfoLabel: {
-    fontFamily: fontFamilies.sans,
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.dark.textMuted,
-    letterSpacing: 0.8,
-    marginBottom: 4,
-  },
-  completedInfoText: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textMuted,
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  completedButtonsRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  historyCard: {
-    marginBottom: spacing.md,
-  },
-  historyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  cardSubtitle: {
-    fontFamily: fontFamilies.sans,
-    fontSize: 13,
-    color: colors.dark.textSecondary,
-    marginTop: 2,
-  },
-  historyCountBadge: {
-    backgroundColor: colors.dark.surfaceElevated,
-    paddingVertical: 3,
-    paddingHorizontal: 10,
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
     borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: colors.dark.surfaceBorder,
-  },
-  historyCountText: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  historyList: {
+    borderColor: 'rgba(245, 158, 11, 0.25)',
+    padding: spacing.sm,
     marginTop: spacing.sm,
     gap: spacing.xs,
   },
-  historyItem: {
+  simNoticeIcon: {
+    fontSize: 14,
+    marginTop: 1,
+  },
+  simNoticeText: {
+    fontFamily: fontFamilies.sans,
+    color: colors.accentGoldLight,
+    fontSize: 11,
+    lineHeight: 15,
+    flex: 1,
+  },
+
+  // 5. History Card
+  historyCard: {
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+  },
+  historyHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.sm + 2,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.divider,
+    marginBottom: spacing.xs,
   },
-  historyItemLeft: {
-    flex: 1,
-  },
-  itemHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 3,
-  },
-  historyChannelBadge: {
+  historyTitle: {
     fontFamily: fontFamilies.sans,
-    color: colors.primaryLight,
+    color: colors.dark.textPrimary,
+    fontSize: 16,
     fontWeight: '700',
-    fontSize: 12,
   },
-  historyDate: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textMuted,
-    fontSize: 12,
-  },
-  historyRef: {
-    fontFamily: fontFamilies.mono,
-    color: colors.dark.textSecondary,
-    fontSize: 12,
-    marginVertical: 2,
-  },
-  historyStreakLabel: {
+  historySubtitle: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
     fontSize: 11,
+    marginTop: 1,
+  },
+  historyBadge: {
+    backgroundColor: colors.dark.surfaceElevated,
+    borderRadius: radii.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: colors.dark.surfaceBorder,
+  },
+  historyBadgeText: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  historyList: {
+    marginTop: spacing.xs,
+  },
+  historyItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  historyItemRowLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 2,
+  },
+  historyItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: spacing.xs,
+  },
+  historyItemIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.dark.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.dark.surfaceBorder,
+  },
+  historyItemIcon: {
+    fontSize: 15,
+  },
+  historyItemMeta: {
+    flex: 1,
+  },
+  historyItemChannel: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textPrimary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  historyItemDate: {
+    fontFamily: fontFamilies.sans,
+    color: colors.dark.textMuted,
+    fontSize: 11,
+    marginTop: 1,
+  },
+  historyItemRef: {
+    fontFamily: fontFamilies.mono,
+    color: colors.dark.textSecondary,
+    fontSize: 10,
+    marginTop: 1,
   },
   historyItemRight: {
     alignItems: 'flex-end',
-    gap: 4,
-    marginLeft: spacing.sm,
+    gap: 3,
   },
-  historyAmount: {
+  historyItemAmount: {
     fontFamily: fontFamilies.sans,
-    fontWeight: '700',
     fontVariant: ['tabular-nums'],
     color: colors.dark.textPrimary,
-    fontSize: 15,
+    fontSize: 13,
+    fontWeight: '700',
   },
 
-  // Modal Styles
+  // 6. Modals
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.md,
   },
   modalContent: {
     width: '100%',
-    maxWidth: 540,
+    maxWidth: 420,
     backgroundColor: colors.dark.surface,
     borderRadius: radii.lg,
+    padding: spacing.lg,
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
-    padding: spacing.lg,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -889,127 +971,122 @@ const styles = StyleSheet.create({
   modalAmharic: {
     fontFamily: fontFamilies.sans,
     color: colors.accentGold,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     marginBottom: 2,
   },
   modalTitle: {
     fontFamily: fontFamilies.sans,
-    fontSize: 21,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     color: colors.dark.textPrimary,
   },
   modalAmountBox: {
-    backgroundColor: 'rgba(13, 148, 136, 0.1)',
+    backgroundColor: colors.dark.surfaceElevated,
     borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: 'rgba(13, 148, 136, 0.35)',
     padding: spacing.md,
     alignItems: 'center',
     marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.primaryDark,
   },
   modalAmountLabel: {
     fontFamily: fontFamilies.sans,
     color: colors.primaryLight,
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-    marginBottom: 4,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
   },
   modalAmountValue: {
     fontFamily: fontFamilies.sans,
-    fontSize: 34,
-    color: colors.accentGold,
-    fontWeight: '800',
     fontVariant: ['tabular-nums'],
+    fontSize: 30,
+    fontWeight: '800',
+    color: colors.dark.textPrimary,
+    marginVertical: 4,
   },
   modalAmountSub: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
-    fontSize: 12,
-    marginTop: 3,
+    fontSize: 11,
   },
   reviewTable: {
-    backgroundColor: colors.dark.surfaceElevated,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
     borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.dark.surfaceBorder,
-    padding: spacing.md,
+    padding: spacing.sm,
     marginBottom: spacing.md,
   },
   reviewTableRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: colors.dark.divider,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
   },
   reviewTableLabel: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
-    fontSize: 13,
+    fontSize: 12,
   },
   reviewTableValue: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textPrimary,
+    fontSize: 12,
     fontWeight: '600',
-    fontSize: 13,
   },
   monoText: {
     fontFamily: fontFamilies.mono,
-    fontSize: 12,
   },
   reviewNoticeBox: {
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    backgroundColor: '#1C1608',
     borderRadius: radii.sm,
-    padding: spacing.md,
+    padding: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.25)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
     marginBottom: spacing.md,
   },
   reviewNoticeText: {
     fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
+    color: colors.accentGoldLight,
+    fontSize: 11,
+    lineHeight: 15,
   },
   modalActionsRow: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
 
-  // Success Modal Specifics
+  // Success Modal
   successHeader: {
     alignItems: 'center',
     marginBottom: spacing.md,
   },
   successCelebrationIcon: {
-    fontSize: 42,
-    marginBottom: 6,
+    fontSize: 40,
+    marginBottom: spacing.xs,
   },
   successAmharicTitle: {
     fontFamily: fontFamilies.sans,
-    color: colors.accentGold,
-    fontSize: 14,
-    fontWeight: '700',
+    color: colors.status.healthy,
+    fontSize: 13,
+    fontWeight: '600',
     marginBottom: 2,
   },
   successTitle: {
     fontFamily: fontFamilies.sans,
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: colors.dark.textPrimary,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   receiptCard: {
     backgroundColor: colors.dark.surfaceElevated,
     borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.dark.surfaceBorder,
     padding: spacing.md,
     marginBottom: spacing.md,
-    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.dark.surfaceBorder,
+    gap: 6,
   },
   receiptRow: {
     flexDirection: 'row',
@@ -1019,63 +1096,61 @@ const styles = StyleSheet.create({
   receiptLabel: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textMuted,
-    fontSize: 13,
+    fontSize: 12,
+  },
+  receiptAmount: {
+    fontFamily: fontFamilies.sans,
+    fontVariant: ['tabular-nums'],
+    color: colors.status.healthy,
+    fontSize: 17,
+    fontWeight: '800',
   },
   receiptValue: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textPrimary,
+    fontSize: 12,
     fontWeight: '600',
-    fontSize: 13,
-  },
-  receiptAmount: {
-    fontFamily: fontFamilies.sans,
-    color: colors.primaryLight,
-    fontSize: 17,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
   },
   issuedTicketCard: {
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
+    backgroundColor: '#0F261E',
     borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: 'rgba(13, 148, 136, 0.4)',
     padding: spacing.md,
     alignItems: 'center',
     marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
   },
   issuedTicketHeading: {
     fontFamily: fontFamilies.sans,
     color: colors.primaryLight,
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '800',
     letterSpacing: 0.8,
   },
   issuedTicketNumber: {
     fontFamily: fontFamilies.mono,
     color: colors.accentGold,
-    fontSize: 22,
-    fontWeight: '700',
-    letterSpacing: 1.5,
+    fontSize: 18,
+    fontWeight: '800',
     marginVertical: 4,
   },
   issuedTicketSub: {
     fontFamily: fontFamilies.sans,
     color: colors.dark.textSecondary,
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
   },
   successActions: {
-    gap: spacing.xs,
+    alignItems: 'center',
   },
   dismissLink: {
+    paddingVertical: spacing.xs,
     alignItems: 'center',
-    paddingVertical: spacing.sm,
   },
   dismissLinkText: {
     fontFamily: fontFamilies.sans,
-    color: colors.dark.textMuted,
-    fontSize: 13,
-    textDecorationLine: 'underline',
+    color: colors.dark.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
-

@@ -88,3 +88,19 @@ export function simulateDemoDraw(input: DrawSimulationInput): DrawSimulationResu
       'DEMO ONLY: This draw was executed client-side using synthetic sample data. It does not represent a real financial draw or lottery.',
   };
 }
+
+/**
+ * Convenient wrapper to simulate a demonstration draw given tickets and seed
+ */
+export function simulateDemonstrationDraw(
+  eligibleTickets: string[],
+  demoSeed?: string,
+  drawId?: string
+): DrawSimulationResult {
+  return simulateDemoDraw({
+    drawId: drawId || `DRAW-SIM-${Date.now()}`,
+    eligibleTickets,
+    demoSeed,
+  });
+}
+

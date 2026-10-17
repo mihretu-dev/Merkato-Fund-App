@@ -116,6 +116,43 @@ export const typography = {
     bold: '700' as const,
     heavy: '800' as const,
   },
+  h1: {
+    fontSize: 24,
+    lineHeight: 32,
+    fontWeight: '700' as const,
+  },
+  h2: {
+    fontSize: 20,
+    lineHeight: 28,
+    fontWeight: '700' as const,
+  },
+  h3: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '600' as const,
+  },
+  body: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '400' as const,
+  },
+  bodySmall: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400' as const,
+  },
+  caption: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '400' as const,
+  },
+  label: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '700' as const,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+  },
 } as const;
 
 export const layout = {

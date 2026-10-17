@@ -3,7 +3,7 @@
 **Project**: Merkato Fund Mobile Application  
 **Target Platforms**: Android, iOS, Web (React Native + Expo Router + TypeScript)  
 **SDK**: Expo SDK 58 (React 19, React Native 0.88)  
-**Status**: Day 1 Complete (Foundation, Design Tokens, Verified Domain Engine)  
+**Status**: Day 2 Complete (Stores, Mock Services, Full Tabs Navigation, 54 Tests Passing)  
 
 ---
 
@@ -43,7 +43,7 @@ This application is a **demonstration prototype** evaluating an Ethiopian fintec
 - **State Management**: Zustand for lightweight domain state stores (`src/stores/`).
 - **Styling**: Vanilla React Native `StyleSheet` backed by structured design tokens in `src/theme/tokens.ts`.
 - **Domain Logic**: Pure TypeScript functions in `src/domain/calculations/`, free of React or UI dependencies.
-- **Testing**: Native Node.js test runner (`node:test`, `node:assert/strict`) executed via `npm test` (using `tsx`).
+- **Testing**: Native Node.js test runner (`node:test`, `node:assert/strict`) executed via `npm test` (using `tsx`). Total 54 unit tests across 19 suites.
 
 ---
 
@@ -53,9 +53,15 @@ This application is a **demonstration prototype** evaluating an Ethiopian fintec
 merkato-fund-app/
 ├── app/                        # Expo Router navigation routes
 │   ├── (tabs)/                 # Tab navigator routes
-│   │   ├── _layout.tsx         # Bottom tab configuration
-│   │   ├── index.tsx           # Day 1: Math & Engine Playground
-│   │   └── two.tsx             # Day 1: Rules & Ambiguities Verification
+│   │   ├── _layout.tsx         # Bottom tab configuration (6 active tabs)
+│   │   ├── index.tsx           # Member Dashboard (Streak, Contributions, Tickets)
+│   │   ├── contribute.tsx      # Daily 50 ETB Contribution Flow & Ledger
+│   │   ├── draw.tsx            # Algorithmic Draw Room & Demo Draw Simulator
+│   │   ├── winner.tsx          # 6-Month Blocked Escrow (1M ETB @ 22%), Repayments, Buffer
+│   │   ├── admin.tsx           # Auditor Preview & Pool Solvency (Guarded for Admin role)
+│   │   ├── verify.tsx          # Day 2 Developer State & Transitions Verification
+│   │   ├── engine.tsx          # Day 1 Math & Engine Playground
+│   │   └── two.tsx             # Day 1 Rules & Ambiguities Verification
 │   ├── _layout.tsx             # Root stack navigator & theme provider
 │   └── modal.tsx               # About & Safety Boundaries modal
 ├── components/                 # Themed base components from Expo
@@ -63,18 +69,30 @@ merkato-fund-app/
 │   ├── requirements.md         # Full requirements specification
 │   ├── architecture.md         # Architecture decision records
 │   ├── data-model.md           # Domain data models & synthetic data
-│   ├── implementation-plan.md  # 7-day sprint roadmap
+│   ├── implementation-plan.md  # 7-day sprint roadmap (Day 1 & Day 2 Verified)
 │   └── open-questions.md       # Financial contradictions & risk register
 ├── src/
-│   ├── components/ui/          # Accessible UI primitives (AppButton, Card, DemoBadge, etc.)
+│   ├── components/ui/          # Accessible UI primitives (AppButton, Card, DemoBadge, MetricTile, PersonaSelector, etc.)
 │   ├── domain/
-│   │   ├── types.ts            # Domain entity types & DemoConfiguration
+│   │   ├── types.ts            # Domain entity types, DemoConfiguration & PoolStatistics
 │   │   └── calculations/       # Pure financial arithmetic modules
 │   │       ├── currency.ts     # ETB formatting utilities
 │   │       ├── interest.ts     # Escrow yield calculations (ACT/365)
 │   │       ├── repayment.ts    # Repayment scenarios & buffer status
 │   │       ├── drawSimulation.ts # Client-side demonstration draw
-│   │       └── __tests__/      # Automated test suite (33 tests)
+│   │       └── __tests__/      # Automated calculations test suite
+│   ├── services/               # Ports & Adapters mock service layer
+│   │   ├── interfaces/         # IMerkatoService contracts
+│   │   ├── mock/               # MockData.ts (3 Ethiopian personas) & MockMerkatoService.ts
+│   │   └── __tests__/          # Mock service automated tests
+│   ├── stores/                 # Zustand reactive state stores
+│   │   ├── useUserStore.ts     # Active persona & persona switching
+│   │   ├── useContributionStore.ts # Daily contribution & ledger
+│   │   ├── useDrawStore.ts     # Active draw, tickets & simulation
+│   │   ├── useWinnerStore.ts   # 1M ETB escrow, repayments & buffer
+│   │   ├── useDemoConfigStore.ts # Configurable rate & repayment models
+│   │   ├── index.ts            # resetAllDemoStores unified reset helper
+│   │   └── __tests__/          # Store automated tests
 │   └── theme/
 │       └── tokens.ts           # Design tokens (colors, spacing, typography, radii)
 ├── package.json

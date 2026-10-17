@@ -33,16 +33,32 @@ export type PaymentChannel =
 
 export type UserRole = 'member' | 'winner' | 'admin';
 
+export type DemoPersonaId = 'dawit' | 'bethlehem' | 'admin';
+
 export interface User {
   id: string;
+  personaId: DemoPersonaId;
   phoneNumber: string;
   fullName: string;
   role: UserRole;
+  occupation?: string;
+  location?: string;
   avatarUrl?: string;
   joinedDate: ISODateString;
   isVerified: boolean;
   activeStreakDays: number;
   totalContributedETB: number;
+  simulatedWalletBalanceETB: number;
+}
+
+export interface PoolStatistics {
+  totalPoolBalanceETB: number;
+  activeContributorsCount: number;
+  dailyExpectedPoolETB: number;
+  drawPrizeAllocatedETB: number;
+  reserveFundETB: number;
+  totalDrawsCompleted: number;
+  lastAuditedDate: ISODateString;
 }
 
 // ---------------------------------------------------------------------------

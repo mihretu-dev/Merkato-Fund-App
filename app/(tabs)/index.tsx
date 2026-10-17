@@ -1,12 +1,20 @@
-import React, { useState } from 'react';
+/**
+ * Merkato Fund — Member Dashboard Screen
+ *
+ * Primary landing screen displaying active persona status, daily streak,
+ * contribution status (paid vs due), and today's draw ticket status.
+ */
+
+import React, { useEffect } from 'react';
 import {
   StyleSheet,
   ScrollView,
   View,
   Text,
-  TouchableOpacity,
   SafeAreaView,
+  TouchableOpacity,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { colors, spacing, typography, radii } from '@/src/theme/tokens';
 import {
@@ -16,374 +24,251 @@ import {
   DemoBadge,
   StatusPill,
   DisclaimerNotice,
+  PersonaSelector,
+  MetricTile,
 } from '@/src/components/ui';
 
-import {
-  formatETB,
-  formatETBCompact,
-} from '@/src/domain/calculations/currency';
-import {
-  calculateDailyInterest,
-  calculateAccruedInterest,
-  calculateNetDailyFlow,
-} from '@/src/domain/calculations/interest';
-import {
-  calculateTotalContributions,
-  calculateRepaymentScenario,
-  estimateRepaymentDays,
-  calculateBufferStatus,
-} from '@/src/domain/calculations/repayment';
-import {
-  simulateDemoDraw,
-  DrawSimulationResult,
-} from '@/src/domain/calculations/drawSimulation';
-import { DEFAULT_DEMO_CONFIG } from '@/src/domain/types';
+import { useUserStore } from '@/src/stores/useUserStore';
+import { useContributionStore } from '@/src/stores/useContributionStore';
+import { useDrawStore } from '@/src/stores/useDrawStore';
+import { useWinnerStore } from '@/src/stores/useWinnerStore';
+import { formatETB } from '@/src/domain/calculations/currency';
 
-export default function EnginePlaygroundScreen() {
-  // 1. Contribution state
-  const [contributionDays, setContributionDays] = useState<number>(30);
+export default function MemberDashboardScreen() {
+  const router = useRouter();
 
-  // 2. Repayment scenario state (500 + 50 admin vs 550 flat)
-  const [repaymentScenario, setRepaymentScenario] = useState<'withAdminFee' | 'flat550'>('withAdminFee');
-  const [elapsedRepaymentDays, setElapsedRepaymentDays] = useState<number>(30);
+  const currentUser = useUserStore((s) => s.currentUser);
+  const currentPersonaId = useUserStore((s) => s.currentPersonaId);
 
-  // 3. Buffer cycle state
-  const [bufferDay, setBufferDay] = useState<number>(5);
+  const paidToday = useContributionStore((s) => s.paidToday);
+  const loadUserContributions = useContributionStore((s) => s.loadUserContributions);
 
-  // 4. Draw simulation state
-  const [drawResult, setDrawResult] = useState<DrawSimulationResult | null>(null);
+  const activeDraw = useDrawStore((s) => s.activeDraw);
+  const userTickets = useDrawStore((s) => s.userTickets);
+  const loadDrawData = useDrawStore((s) => s.loadDrawData);
 
-  // Computed values
-  const totalContributed = calculateTotalContributions(contributionDays, DEFAULT_DEMO_CONFIG.dailyContributionETB);
+  const escrowAccount = useWinnerStore((s) => s.escrowAccount);
+  const loadWinnerData = useWinnerStore((s) => s.loadWinnerData);
 
-  const dailyInterest = calculateDailyInterest(
-    DEFAULT_DEMO_CONFIG.prizeAmountETB,
-    DEFAULT_DEMO_CONFIG.annualInterestRate,
-    365
-  );
-  const accrued180Interest = calculateAccruedInterest(
-    DEFAULT_DEMO_CONFIG.prizeAmountETB,
-    DEFAULT_DEMO_CONFIG.annualInterestRate,
-    180,
-    365
-  );
+  useEffect(() => {
+    if (currentUser?.id) {
+      loadUserContributions(currentUser.id);
+      loadDrawData(currentUser.id);
+      loadWinnerData(currentUser.id);
+    }
+  }, [currentUser?.id]);
 
-  const activePrincipalRate = repaymentScenario === 'withAdminFee' ? 500 : 550;
-  const activeAdminFee = repaymentScenario === 'withAdminFee' ? 50 : 0;
-
-  const repaymentCalc = calculateRepaymentScenario(elapsedRepaymentDays, {
-    prizeAmountETB: DEFAULT_DEMO_CONFIG.prizeAmountETB,
-    dailyPrincipalRepaymentETB: activePrincipalRate,
-    dailyAdminFeeETB: activeAdminFee,
-  });
-
-  const netDaily = calculateNetDailyFlow({
-    prizeAmountETB: DEFAULT_DEMO_CONFIG.prizeAmountETB,
-    annualInterestRate: DEFAULT_DEMO_CONFIG.annualInterestRate,
-    dailyPrincipalRepaymentETB: activePrincipalRate,
-    dailyAdminFeeETB: activeAdminFee,
-  });
-
-  const estimatedPayoffDays = estimateRepaymentDays(
-    DEFAULT_DEMO_CONFIG.prizeAmountETB,
-    activePrincipalRate
-  );
-
-  const bufferStatus = calculateBufferStatus(bufferDay, {
-    bufferAmountETB: DEFAULT_DEMO_CONFIG.bufferAmountETB,
-    bufferCycleDays: DEFAULT_DEMO_CONFIG.bufferCycleDays,
-    dailyPrincipalRepaymentETB: activePrincipalRate,
-  });
-
-  const handleRunDrawSimulation = () => {
-    const demoTickets = [
-      'TKT-0911-2026-AA',
-      'TKT-0912-2026-BB',
-      'TKT-0913-2026-CC',
-      'TKT-0914-2026-DD',
-      'TKT-0915-2026-EE',
-      'TKT-0916-2026-FF',
-    ];
-    const result = simulateDemoDraw({
-      drawId: `DRAW-${Date.now().toString().slice(-4)}`,
-      eligibleTickets: demoTickets,
-      demoSeed: `MERKATO-SEED-${Date.now()}`,
-    });
-    setDrawResult(result);
-  };
+  const activeTodayTickets = userTickets.filter((t) => t.drawId === activeDraw?.id);
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header Hero */}
-        <View style={styles.heroSection}>
-          <View style={styles.headerRow}>
-            <Text style={styles.heroTitle}>Merkato Fund</Text>
-            <DemoBadge label="DEMO ENGINE" />
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Top Branding & Demo Badge */}
+        <View style={styles.topBar}>
+          <View>
+            <Text style={styles.brandTitle}>Merkato Fund</Text>
+            <Text style={styles.brandSubtitle}>የመርካቶ የዕቁብ ፈንድ • Demo Prototype</Text>
           </View>
-          <Text style={styles.heroSubtitle}>
-            Day 1 Verified Financial Domain Arithmetic & Demonstration Simulator
-          </Text>
+          <DemoBadge label="DEMO PROTOTYPE" />
         </View>
 
-        {/* 1. Contribution Engine */}
-        <Card style={styles.card} variant="elevated">
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>1. Daily Contribution Engine</Text>
-            <DemoBadge compact label="SYNTHETIC" />
-          </View>
-          <Text style={styles.cardDesc}>
-            Calculates pool accumulation based on explicitly supplied days @ 50 ETB/day.
-          </Text>
+        {/* Compact Persona Switcher */}
+        <View style={styles.personaSwitcherSection}>
+          <Text style={styles.sectionLabel}>SWITCH DEMO PERSONA</Text>
+          <PersonaSelector compact />
+        </View>
 
-          <View style={styles.pillSelector}>
-            {[14, 30, 90, 180, 365].map((d) => (
-              <TouchableOpacity
-                key={d}
-                onPress={() => setContributionDays(d)}
-                style={[
-                  styles.selectorPill,
-                  contributionDays === d && styles.selectorPillActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.selectorPillText,
-                    contributionDays === d && styles.selectorPillTextActive,
-                  ]}
-                >
-                  {d}d
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={styles.statsRow}>
-            <CurrencyDisplay
-              amountETB={totalContributed}
-              label={`Total for ${contributionDays} Days`}
-              size="lg"
-              color={colors.primaryLight}
-            />
-            <View style={styles.subStat}>
-              <Text style={styles.subStatLabel}>Rate</Text>
-              <Text style={styles.subStatValue}>50 ETB / day</Text>
-            </View>
-          </View>
-        </Card>
-
-        {/* 2. Escrow & Interest Engine */}
-        <Card style={styles.card} variant="elevated">
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>2. Escrow & 22% Yield (ACT/365)</Text>
-            <StatusPill status="locked" label="6-MO BLOCKED" />
-          </View>
-          <Text style={styles.cardDesc}>
-            Source claims 22% annual interest on 1M ETB blocked deposit. Computed using standard ACT/365 simple interest arithmetic.
-          </Text>
-
-          <View style={styles.statsGrid}>
-            <CurrencyDisplay
-              amountETB={dailyInterest}
-              label="Daily Interest Yield"
-              size="md"
-              color={colors.accentGold}
-            />
-            <CurrencyDisplay
-              amountETB={accrued180Interest}
-              label="180-Day Full Yield"
-              size="md"
-              color={colors.status.healthy}
-            />
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.statsRow}>
-            <CurrencyDisplay
-              amountETB={netDaily.netDailyFlowETB}
-              showSign
-              label="Net Daily Cash Flow (Yield - Payment)"
-              size="lg"
-              color={netDaily.netDailyFlowETB >= 0 ? colors.status.healthy : colors.status.critical}
-            />
-            <View style={styles.subStat}>
-              <Text style={styles.subStatLabel}>Convention</Text>
-              <Text style={styles.subStatValue}>ACT/365 Simple</Text>
-            </View>
-          </View>
-        </Card>
-
-        {/* 3. Repayment & Fee Separation */}
-        <Card style={styles.card} variant="elevated">
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>3. Post-Win Repayment & Fee Separation</Text>
-          </View>
-          <Text style={styles.cardDesc}>
-            The 50 ETB admin fee is kept separate from principal. Admin fees do not reduce the 1M ETB principal balance.
-          </Text>
-
-          <View style={styles.pillSelector}>
-            <TouchableOpacity
-              onPress={() => setRepaymentScenario('withAdminFee')}
-              style={[
-                styles.scenarioButton,
-                repaymentScenario === 'withAdminFee' && styles.selectorPillActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.selectorPillText,
-                  repaymentScenario === 'withAdminFee' && styles.selectorPillTextActive,
-                ]}
-              >
-                500 Principal + 50 Fee (550 Total)
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setRepaymentScenario('flat550')}
-              style={[
-                styles.scenarioButton,
-                repaymentScenario === 'flat550' && styles.selectorPillActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.selectorPillText,
-                  repaymentScenario === 'flat550' && styles.selectorPillTextActive,
-                ]}
-              >
-                550 Flat Principal (0 Fee)
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.statsGrid}>
-            <CurrencyDisplay
-              amountETB={repaymentCalc.principalRepaidETB}
-              label={`Principal Repaid (${elapsedRepaymentDays}d)`}
-              size="md"
-            />
-            <CurrencyDisplay
-              amountETB={repaymentCalc.adminFeesRepaidETB}
-              label="Admin Fees Paid (Separate)"
-              size="md"
-              color={colors.accentGold}
-            />
-          </View>
-
-          <View style={styles.statsGrid}>
-            <CurrencyDisplay
-              amountETB={repaymentCalc.remainingPrincipalETB}
-              label="Remaining Principal"
-              size="md"
-              color={colors.dark.textSecondary}
-            />
-            <View style={styles.subStat}>
-              <Text style={styles.subStatLabel}>Estimated Payoff</Text>
-              <Text style={styles.subStatValue}>
-                ~{estimatedPayoffDays} days ({(estimatedPayoffDays / 365).toFixed(1)} yrs)
+        {/* Active Persona Profile Card */}
+        <Card style={styles.profileCard} variant="elevated">
+          <View style={styles.profileHeader}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {currentUser.fullName
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .slice(0, 2)}
               </Text>
             </View>
-          </View>
-        </Card>
-
-        {/* 4. Winner Buffer Health */}
-        <Card style={styles.card} variant="elevated">
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>4. Winner Buffer (7,500 ETB / 15-Day)</Text>
-            <StatusPill status={bufferStatus.healthStatus} />
-          </View>
-          <Text style={styles.cardDesc}>
-            Tracks 15-day burn rate of 500 ETB/day to cushion repayments.
-          </Text>
-
-          <View style={styles.pillSelector}>
-            {[0, 5, 8, 13, 15].map((day) => (
-              <TouchableOpacity
-                key={day}
-                onPress={() => setBufferDay(day)}
-                style={[
-                  styles.selectorPill,
-                  bufferDay === day && styles.selectorPillActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.selectorPillText,
-                    bufferDay === day && styles.selectorPillTextActive,
-                  ]}
-                >
-                  Day {day}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={styles.statsRow}>
-            <CurrencyDisplay
-              amountETB={bufferStatus.currentBalanceETB}
-              label="Remaining Buffer"
-              size="lg"
-              color={
-                bufferStatus.healthStatus === 'healthy'
-                  ? colors.status.healthy
-                  : bufferStatus.healthStatus === 'caution'
-                  ? colors.status.caution
-                  : colors.status.critical
-              }
-            />
-            <View style={styles.subStat}>
-              <Text style={styles.subStatLabel}>Cycle Remaining</Text>
-              <Text style={styles.subStatValue}>
-                {bufferStatus.daysRemaining} days ({bufferStatus.percentRemaining.toFixed(0)}%)
-              </Text>
-            </View>
-          </View>
-        </Card>
-
-        {/* 5. Demonstration Draw Simulator */}
-        <Card style={styles.card} variant="elevated">
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>5. Algorithmic Draw Demonstration</Text>
-            <DemoBadge compact label="DEMO SIMULATION" />
-          </View>
-          <Text style={styles.cardDesc}>
-            Client-side seeded FNV-1a demonstration generator. Isolated from financial calculations and clearly identified as synthetic.
-          </Text>
-
-          <AppButton
-            title="Simulate Demonstration Draw"
-            onPress={handleRunDrawSimulation}
-            variant="gold"
-            style={{ marginVertical: spacing.md }}
-          />
-
-          {drawResult && (
-            <View style={styles.drawResultBox}>
-              <View style={styles.drawResultHeader}>
-                <Text style={styles.drawWinningTicket}>
-                  {drawResult.winningTicketNumber}
-                </Text>
-                <StatusPill status="completed" label="SIMULATED WINNER" />
+            <View style={styles.profileMeta}>
+              <View style={styles.nameRow}>
+                <Text style={styles.profileName}>{currentUser.fullName}</Text>
+                <StatusPill
+                  status={
+                    currentUser.role === 'winner'
+                      ? 'caution'
+                      : currentUser.role === 'admin'
+                      ? 'info'
+                      : 'healthy'
+                  }
+                  label={currentUser.role.toUpperCase()}
+                  size="small"
+                />
               </View>
-              <Text style={styles.drawDetailText}>
-                Draw ID: {drawResult.drawId} • Pool: {drawResult.totalParticipants} demo tickets
+              <Text style={styles.occupationText}>{currentUser.occupation}</Text>
+              <Text style={styles.locationText}>📍 {currentUser.location}</Text>
+            </View>
+          </View>
+
+          {/* Quick Metrics Grid */}
+          <View style={styles.metricsGrid}>
+            <MetricTile
+              label="Active Streak"
+              value={`${currentUser.activeStreakDays} Days`}
+              subtitle="50 ETB / day"
+              highlight
+            />
+            <MetricTile
+              label="Total Contributed"
+              value={formatETB(currentUser.totalContributedETB)}
+              subtitle="All-time micro pool"
+            />
+            <MetricTile
+              label="Demo Balance"
+              value={formatETB(currentUser.simulatedWalletBalanceETB)}
+              subtitle="Simulated wallet"
+            />
+          </View>
+        </Card>
+
+        {/* Role-Specific Context Banners */}
+        {currentUser.role === 'winner' && (
+          <Card style={styles.bannerCardWinner} variant="elevated">
+            <View style={styles.bannerHeader}>
+              <Text style={styles.bannerTitle}>🏆 Active Winner Experience</Text>
+              <StatusPill status="locked" label="DAY 45 OF 180" size="small" />
+            </View>
+            <Text style={styles.bannerText}>
+              1,000,000 ETB locked in Commercial Bank of Ethiopia (CBE) escrow. Generating 602.74 ETB daily interest (22% p.a.).
+            </Text>
+            <AppButton
+              title="Inspect 6-Month Escrow & Repayments →"
+              variant="gold"
+              onPress={() => router.push('/(tabs)/winner')}
+              style={{ marginTop: spacing.sm }}
+            />
+          </Card>
+        )}
+
+        {currentUser.role === 'admin' && (
+          <Card style={styles.bannerCardAdmin} variant="elevated">
+            <View style={styles.bannerHeader}>
+              <Text style={styles.bannerTitle}>🛡️ Auditor & Compliance Dashboard</Text>
+              <StatusPill status="info" label="ADMIN PREVIEW" size="small" />
+            </View>
+            <Text style={styles.bannerText}>
+              Reviewing pool solvency, daily 1M ETB prize reserve, and algorithmic draw audit trails.
+            </Text>
+            <AppButton
+              title="Open Compliance & Pool Analytics →"
+              variant="outline"
+              onPress={() => router.push('/(tabs)/admin')}
+              style={{ marginTop: spacing.sm }}
+            />
+          </Card>
+        )}
+
+        {/* Daily Contribution Status Card */}
+        <Card style={styles.sectionCard} variant="elevated">
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.cardSectionTitle}>Daily 50 ETB Micro-Contribution</Text>
+            <StatusPill
+              status={paidToday ? 'healthy' : 'caution'}
+              label={paidToday ? 'PAID TODAY' : 'PAYMENT DUE'}
+            />
+          </View>
+
+          <Text style={styles.cardSectionDesc}>
+            {paidToday
+              ? 'Your 50 ETB daily contribution for today (2026-10-17) is completed. You are entered into tonight’s 1,000,000 ETB draw.'
+              : 'Pay your 50 ETB daily contribution to maintain your 14-day streak and secure your algorithmic draw ticket for tonight.'}
+          </Text>
+
+          <View style={styles.actionRow}>
+            {paidToday ? (
+              <AppButton
+                title="View Transaction History"
+                variant="outline"
+                onPress={() => router.push('/(tabs)/contribute')}
+                fullWidth
+              />
+            ) : (
+              <AppButton
+                title="Pay 50 ETB Now (Telebirr / CBE) →"
+                variant="primary"
+                onPress={() => router.push('/(tabs)/contribute')}
+                fullWidth
+              />
+            )}
+          </View>
+        </Card>
+
+        {/* Tonight's Algorithmic Draw Card */}
+        <Card style={styles.sectionCard} variant="elevated">
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.cardSectionTitle}>Tonight's Algorithmic Draw</Text>
+            <StatusPill status="info" label="20:00:00 EAT" />
+          </View>
+
+          <View style={styles.drawPrizeRow}>
+            <CurrencyDisplay
+              amountETB={activeDraw?.prizeAmountETB || 1_000_000}
+              label="Stated Draw Prize"
+              size="lg"
+              color={colors.accentGold}
+            />
+            <View style={styles.ticketBadgeContainer}>
+              <Text style={styles.ticketBadgeLabel}>Your Tickets</Text>
+              <Text style={styles.ticketBadgeCount}>
+                {activeTodayTickets.length} Active
               </Text>
-              <Text style={styles.drawDetailText}>
-                Method: {drawResult.selectionMethod}
+            </View>
+          </View>
+
+          {activeTodayTickets.length > 0 ? (
+            <View style={styles.ticketCard}>
+              <Text style={styles.ticketLabel}>ENTRY TICKET NUMBER</Text>
+              <Text style={styles.ticketNumber}>
+                {activeTodayTickets[0].ticketNumber}
               </Text>
-              <Text style={styles.drawDisclaimerText}>
-                ⚠️ {drawResult.disclaimer}
+              <Text style={styles.ticketSub}>
+                Issued {activeTodayTickets[0].issuedAt.split('T')[1].slice(0, 5)} EAT • Verified Deterministic Seed
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.noTicketNotice}>
+              <Text style={styles.noTicketText}>
+                ⚠️ No ticket issued yet for today’s draw. Complete today’s 50 ETB contribution to generate your ticket.
               </Text>
             </View>
           )}
+
+          <AppButton
+            title="Open Draw Room & Test Simulator →"
+            variant="secondary"
+            onPress={() => router.push('/(tabs)/draw')}
+            style={{ marginTop: spacing.md }}
+          />
         </Card>
 
-        {/* Global Mandatory Disclaimer */}
+        {/* Developer Day 2 Quick Verification Link */}
+        <Card style={styles.devCard} variant="outline">
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.devTitle}>🛠️ Day 2 Verification Harness</Text>
+            <StatusPill status="info" label="DEV TESTER" size="small" />
+          </View>
+          <Text style={styles.devDesc}>
+            Verify persona transitions, state updates across stores, contribution submissions, draw simulations, and demo resets in one screen.
+          </Text>
+          <AppButton
+            title="Open State Verification Harness"
+            variant="outline"
+            onPress={() => router.push('/(tabs)/verify')}
+            style={{ marginTop: spacing.xs }}
+          />
+        </Card>
+
+        {/* Mandatory Safety Notice */}
         <DisclaimerNotice />
       </ScrollView>
     </SafeAreaView>
@@ -396,146 +281,212 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dark.background,
   },
   container: {
-    padding: spacing.lg,
+    padding: spacing.md,
     paddingBottom: spacing.huge,
   },
-  heroSection: {
-    marginBottom: spacing.lg,
-  },
-  headerRow: {
+  topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  heroTitle: {
-    fontSize: typography.fontSizes.xxl,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.dark.textPrimary,
-  },
-  heroSubtitle: {
-    fontSize: typography.fontSizes.sm,
-    color: colors.dark.textSecondary,
-    lineHeight: typography.lineHeights.sm,
-  },
-  card: {
-    marginBottom: spacing.lg,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  cardTitle: {
-    fontSize: typography.fontSizes.md,
-    fontWeight: typography.fontWeights.bold,
-    color: colors.dark.textPrimary,
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  cardDesc: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.dark.textSecondary,
-    lineHeight: typography.lineHeights.xs,
     marginBottom: spacing.md,
   },
-  pillSelector: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+  brandTitle: {
+    ...typography.h2,
+    color: colors.dark.textPrimary,
+    fontSize: 22,
+  },
+  brandSubtitle: {
+    ...typography.caption,
+    color: colors.dark.textSecondary,
+    fontSize: 12,
+  },
+  personaSwitcherSection: {
     marginBottom: spacing.md,
   },
-  selectorPill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: radii.full,
-    backgroundColor: colors.dark.surfaceElevated,
-    borderWidth: 1,
+  sectionLabel: {
+    ...typography.label,
+    color: colors.dark.textMuted,
+    fontSize: 10,
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  profileCard: {
+    marginBottom: spacing.md,
+    backgroundColor: colors.dark.surface,
     borderColor: colors.dark.surfaceBorder,
-    minHeight: 36,
-    justifyContent: 'center',
   },
-  selectorPillActive: {
-    backgroundColor: colors.primary,
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primaryDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+    borderWidth: 2,
     borderColor: colors.primaryLight,
   },
-  selectorPillText: {
-    fontSize: typography.fontSizes.xs,
-    color: colors.dark.textSecondary,
-    fontWeight: typography.fontWeights.medium,
-  },
-  selectorPillTextActive: {
+  avatarText: {
+    ...typography.h3,
     color: '#FFFFFF',
-    fontWeight: typography.fontWeights.bold,
+    fontSize: 18,
   },
-  scenarioButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 4,
+  profileMeta: {
+    flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  profileName: {
+    ...typography.h3,
+    color: colors.dark.textPrimary,
+    fontSize: 17,
+  },
+  occupationText: {
+    ...typography.bodySmall,
+    color: colors.dark.textSecondary,
+  },
+  locationText: {
+    ...typography.caption,
+    color: colors.dark.textMuted,
+    marginTop: 2,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  bannerCardWinner: {
+    marginBottom: spacing.md,
+    backgroundColor: '#1E170A',
+    borderColor: colors.accentGoldDark,
+    borderWidth: 1.5,
+  },
+  bannerCardAdmin: {
+    marginBottom: spacing.md,
+    backgroundColor: '#0F172A',
+    borderColor: colors.telebirr,
+    borderWidth: 1.5,
+  },
+  bannerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  bannerTitle: {
+    ...typography.h3,
+    color: colors.dark.textPrimary,
+    fontSize: 15,
+  },
+  bannerText: {
+    ...typography.bodySmall,
+    color: colors.dark.textSecondary,
+    lineHeight: 18,
+  },
+  sectionCard: {
+    marginBottom: spacing.md,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  cardSectionTitle: {
+    ...typography.h3,
+    color: colors.dark.textPrimary,
+    fontSize: 16,
+  },
+  cardSectionDesc: {
+    ...typography.bodySmall,
+    color: colors.dark.textSecondary,
+    lineHeight: 18,
+    marginBottom: spacing.md,
+  },
+  actionRow: {
+    marginTop: spacing.xs,
+  },
+  drawPrizeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: spacing.md,
+  },
+  ticketBadgeContainer: {
+    alignItems: 'flex-end',
+  },
+  ticketBadgeLabel: {
+    ...typography.caption,
+    color: colors.dark.textMuted,
+    fontSize: 10,
+    textTransform: 'uppercase',
+  },
+  ticketBadgeCount: {
+    ...typography.h3,
+    color: colors.primaryLight,
+    fontSize: 16,
+  },
+  ticketCard: {
+    backgroundColor: '#0F1E19',
     borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.primaryDark,
+    padding: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  ticketLabel: {
+    ...typography.label,
+    color: colors.primaryLight,
+    fontSize: 9,
+    letterSpacing: 1,
+  },
+  ticketNumber: {
+    ...typography.h2,
+    color: colors.accentGold,
+    fontSize: 20,
+    letterSpacing: 1.5,
+    marginVertical: 4,
+  },
+  ticketSub: {
+    ...typography.caption,
+    color: colors.dark.textSecondary,
+    fontSize: 11,
+  },
+  noTicketNotice: {
     backgroundColor: colors.dark.surfaceElevated,
+    borderRadius: radii.md,
+    padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.dark.surfaceBorder,
     marginBottom: spacing.xs,
-    width: '100%',
   },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: spacing.xs,
-  },
-  subStat: {
-    alignItems: 'flex-end',
-  },
-  subStatLabel: {
-    fontSize: typography.fontSizes.xs,
+  noTicketText: {
+    ...typography.bodySmall,
     color: colors.dark.textMuted,
-    textTransform: 'uppercase',
+    lineHeight: 18,
   },
-  subStatValue: {
-    fontSize: typography.fontSizes.sm,
+  devCard: {
+    marginBottom: spacing.md,
+    backgroundColor: '#111827',
+    borderColor: colors.dark.surfaceBorder,
+  },
+  devTitle: {
+    ...typography.h3,
     color: colors.dark.textPrimary,
-    fontWeight: typography.fontWeights.semibold,
+    fontSize: 14,
   },
-  divider: {
-    height: 1,
-    backgroundColor: colors.dark.surfaceBorder,
-    marginVertical: spacing.md,
-  },
-  drawResultBox: {
-    backgroundColor: '#0F172A',
-    borderColor: colors.accentGoldDark,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    marginTop: spacing.xs,
-  },
-  drawResultHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  drawWinningTicket: {
-    fontSize: typography.fontSizes.lg,
-    fontWeight: typography.fontWeights.heavy,
-    color: colors.accentGold,
-  },
-  drawDetailText: {
-    fontSize: typography.fontSizes.xs,
+  devDesc: {
+    ...typography.bodySmall,
     color: colors.dark.textSecondary,
-    marginTop: 2,
-  },
-  drawDisclaimerText: {
-    fontSize: 10,
-    color: colors.accentGold,
-    marginTop: spacing.sm,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 16,
+    marginVertical: 4,
   },
 });

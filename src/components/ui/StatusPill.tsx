@@ -11,19 +11,47 @@ import { colors, radii, spacing, typography } from '@/src/theme/tokens';
 import { BufferHealthStatus } from '@/src/domain/types';
 
 interface StatusPillProps {
-  status: BufferHealthStatus | 'scheduled' | 'in_progress' | 'completed' | 'locked' | 'unlocked';
+  status:
+    | BufferHealthStatus
+    | 'scheduled'
+    | 'in_progress'
+    | 'completed'
+    | 'locked'
+    | 'unlocked'
+    | 'info';
   label?: string;
+  size?: 'small' | 'medium';
   style?: ViewStyle;
 }
 
-export function StatusPill({ status, label, style }: StatusPillProps) {
+export function StatusPill({ status, label, size = 'medium', style }: StatusPillProps) {
   const displayLabel = (label || status).toUpperCase();
   const theme = statusColors[status] || statusColors.healthy;
+  const isSmall = size === 'small';
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg }, style]}>
-      <View style={[styles.dot, { backgroundColor: theme.color }]} />
-      <Text style={[styles.text, { color: theme.color }]}>{displayLabel}</Text>
+    <View
+      style={[
+        styles.container,
+        isSmall && styles.containerSmall,
+        { backgroundColor: theme.bg },
+        style,
+      ]}>
+      <View
+        style={[
+          styles.dot,
+          isSmall && styles.dotSmall,
+          { backgroundColor: theme.color },
+        ]}
+      />
+      <Text
+        style={[
+          styles.text,
+          isSmall && styles.textSmall,
+          { color: theme.color },
+        ]}>
+        {displayLabel}
+      </Text>
     </View>
   );
 }
@@ -38,6 +66,7 @@ const statusColors: Record<string, { color: string; bg: string }> = {
   completed: { color: colors.status.healthy, bg: colors.status.healthyBg },
   locked: { color: colors.accentGold, bg: colors.accentGoldDark },
   unlocked: { color: colors.status.healthy, bg: colors.status.healthyBg },
+  info: { color: colors.primaryLight, bg: '#0A2520' },
 };
 
 const styles = StyleSheet.create({
@@ -49,15 +78,29 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
     alignSelf: 'flex-start',
   },
+  containerSmall: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
   dot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     marginRight: spacing.xs,
   },
+  dotSmall: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginRight: 4,
+  },
   text: {
     fontSize: typography.fontSizes.xs,
     fontWeight: typography.fontWeights.bold,
     letterSpacing: 0.5,
+  },
+  textSmall: {
+    fontSize: 9,
+    letterSpacing: 0.3,
   },
 });

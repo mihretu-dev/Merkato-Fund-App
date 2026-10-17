@@ -30,14 +30,14 @@ Merkato Fund requires a robust mobile client that can immediately demonstrate co
 
 | Layer | Selected Technology | Version / Tooling | Rationale & Tradeoff Analysis |
 |---|---|---|---|
-| **Runtime & Framework** | **React Native + Expo** | Expo SDK 52+ | Allows rapid cross-platform development for Android and iOS from a single TypeScript codebase. Managed workflow eliminates native build toolchain friction. |
-| **Language** | **TypeScript** | TypeScript 5.3+ (Strict Mode) | Strong typing prevents runtime errors in financial calculations, entity models, and navigation parameters. |
-| **Routing / Navigation** | **Expo Router** | v4 (File-based routing) | Deep linking out-of-the-box, type-safe route parameters, automatic stack and tab navigation matching native conventions. |
-| **State Management** | **Zustand** + React Context | Zustand 5.x | Minimal boilerplate, zero-wrapper hooks, lightweight footprint, seamless persistence adapter for local storage. |
-| **Local Persistence** | **AsyncStorage** | `@react-native-async-storage/async-storage` | Simple, reliable, zero-native-build-complexity key-value store for saving demo state and user profiles. |
-| **UI Styling** | **Vanilla React Native `StyleSheet` + Design Tokens** | Custom Theme Engine | Zero external CSS runtime overhead, 100% predictable cross-platform layout performance, easy dark/light mode tokenization. Avoids heavy styling libraries. |
-| **Icons** | **@expo/vector-icons** | Lucide / Ionicons | Standard Expo inclusion, crisp vector rendering across all pixel densities. |
-| **Testing** | **Jest + React Native Testing Library** | Latest compatible | Unit test suite for 22% interest, daily amortization, buffer countdown, and repository contracts. |
+| **Runtime & Framework** | **React Native + Expo** | Expo SDK 58 (React 19, React Native 0.88) | Allows rapid cross-platform development for Android, iOS, and Web from a single TypeScript codebase. Managed workflow eliminates native build toolchain friction. |
+| **Language** | **TypeScript** | TypeScript 5.8+ (Strict Mode) | Strong typing prevents runtime errors in financial calculations, entity models, and navigation parameters. |
+| **Routing / Navigation** | **Expo Router** | Expo Router v58 (File-based routing) | Deep linking out-of-the-box, type-safe route parameters, automatic stack and tab navigation matching native conventions. |
+| **State Management** | **Zustand** | Zustand 5.x | Minimal boilerplate, zero-wrapper hooks, lightweight footprint, and reactive store synchronization. |
+| **Local Persistence** | **In-Memory & AsyncStorage Adapter** | Seeded Mock Service | Fully functional offline demonstration store with deterministic persona state and instant reset. |
+| **UI Styling** | **Vanilla React Native `StyleSheet` + Design Tokens** | Custom Theme Engine (`src/theme/tokens.ts`) | Zero external CSS runtime overhead, 100% predictable cross-platform layout performance, Ethiopian fintech color palette. |
+| **Icons** | **expo-symbols** | Apple SF Symbols & Material Icons | Crisp vector symbols with platform fallbacks across iOS, Android, and Web. |
+| **Testing** | **Native Node.js Test Runner (`node:test`) + `tsx`** | Latest Node.js built-in | High-speed unit test suite for ACT/365 interest, daily amortization, buffer countdown, mock services, and Zustand stores. |
 | **Future Backend Target** | **Supabase (PostgreSQL)** | Ready for `@supabase/supabase-js` | Relational integrity for user ledgers, row-level security (RLS), real-time draw events, and instant auth. |
 
 ---

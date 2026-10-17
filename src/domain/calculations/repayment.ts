@@ -203,3 +203,19 @@ export function calculateBufferStatus(
     percentRemaining,
   };
 }
+
+/**
+ * Determine the health status of a winner's operational buffer
+ * based on remaining balance vs target buffer amount.
+ */
+export function calculateBufferHealth(
+  currentBalanceETB: number,
+  targetBufferAmountETB: number = 7_500
+): 'healthy' | 'caution' | 'critical' | 'depleted' {
+  if (currentBalanceETB <= 0) return 'depleted';
+  const percent = targetBufferAmountETB > 0 ? (currentBalanceETB / targetBufferAmountETB) * 100 : 0;
+  if (percent <= 20) return 'critical';
+  if (percent <= 50) return 'caution';
+  return 'healthy';
+}
+

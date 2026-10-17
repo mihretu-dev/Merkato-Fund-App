@@ -59,17 +59,30 @@ gantt
 
 ---
 
-### Day 2: Navigation Shell, Mock Services & State Management
+### Day 2: Navigation Shell, Mock Services & State Management (STATUS: VERIFIED)
 - **Objective**: Build the application backbone, navigation routing, mock services, and Zustand stores.
-- **Deliverables**:
-  - Configure Expo Router hierarchy:
-    - `app/(auth)/` stack (Onboarding, Sign-in/Persona Switcher).
-    - `app/(tabs)/` bottom tab bar (Dashboard, Contribute, Draw, Winner, Profile).
-    - `app/modals/` for payment, draw celebration, and repayments.
-  - Implement mock repository layer (`MockAuthService`, `MockContributionService`, `MockDrawService`, `MockEscrowService`, `MockRepaymentService`).
-  - Seed realistic Ethiopian data (`mockData.ts`) with 3 personas (Dawit Haile, Bethlehem Tadesse, Admin Auditor).
-  - Setup Zustand stores (`useUserStore`, `useContributionStore`, `useDrawStore`, `useWinnerStore`, `useDemoConfigStore`).
-  - Build foundational UI primitives: `Button`, `Card`, `Badge`, `MetricTile`, `Header`, `DemoWatermark`.
+- **Implemented Deliverables**:
+  - Configured Expo Router tab navigation in `app/(tabs)/_layout.tsx`:
+    - `app/(tabs)/index.tsx`: Member Dashboard with instant Persona Switcher and live metrics.
+    - `app/(tabs)/contribute.tsx`: 50 ETB payment simulation across Telebirr/CBE and synthetic transaction ledger.
+    - `app/(tabs)/draw.tsx`: Daily 1M ETB algorithmic draw room, SHA-256 transparency seed, ticket ledger, and live demonstration draw simulator.
+    - `app/(tabs)/winner.tsx`: Winner custody experience with 1,000,000 ETB escrow at CBE, 22% yield accrual (ACT/365), daily repayments (500 ETB + 50 ETB fee), and 15-day / 7,500 ETB buffer health monitor.
+    - `app/(tabs)/admin.tsx`: Auditor & compliance dashboard with 20,000 member solvency analysis and role-guarding.
+    - `app/(tabs)/verify.tsx`: Comprehensive Day 2 developer verification screen proving persona switching, state reactivity, contribution submission, draw execution, winner/admin data, and demo reset.
+    - Preserved Day 1 Math Engine (`app/(tabs)/engine.tsx`) and Ambiguities (`app/(tabs)/two.tsx`) as routable reference screens.
+  - Core service interfaces and offline mock adapter:
+    - `src/services/interfaces/IMerkatoService.ts`: Ports & Adapters contracts.
+    - `src/services/mock/mockData.ts`: Authentic Ethiopian seed data for 3 personas (Dawit Haile, Bethlehem Tadesse, Abebe Kebede).
+    - `src/services/mock/MockMerkatoService.ts`: In-memory offline repository with deterministic behavior and automatic ticket issuance.
+  - Zustand state management:
+    - `useUserStore`: Persona switching and profile updates.
+    - `useContributionStore`: Daily contribution status and transaction ledger.
+    - `useDrawStore`: Draw countdowns, entry tickets, and demonstration draw simulation.
+    - `useWinnerStore`: 1,000,000 ETB escrow, repayment installments, and buffer replenishment.
+    - `useDemoConfigStore`: Toggleable financial models (500+50 vs 550 flat).
+    - `resetAllDemoStores()`: Unified demo reset restoring all 5 stores and mock service to initial state.
+  - UI Primitives: `PersonaSelector`, `MetricTile`, `StatusPill` with size/info variants.
+  - Automated test suite expanded to **54 passing unit tests** across 19 suites (`src/**/__tests__/**/*.test.ts`).
 
 ---
 

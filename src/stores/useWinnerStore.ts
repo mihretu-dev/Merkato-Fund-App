@@ -14,6 +14,7 @@ interface WinnerState {
   escrowAccount: EscrowAccount | null;
   repaymentSchedule: RepaymentSchedule | null;
   winnerBuffer: WinnerBuffer | null;
+  simulationDay: number;
   isLoading: boolean;
   error: string | null;
 
@@ -21,6 +22,8 @@ interface WinnerState {
   loadWinnerData: (userId: string) => Promise<void>;
   recordRepayment: (userId: string, channel?: PaymentChannel) => Promise<void>;
   replenishBuffer: (userId: string, amountETB?: number) => Promise<void>;
+  setSimulationDay: (day: number) => void;
+  resetSimulationDay: () => void;
   resetWinnerStore: () => void;
 }
 
@@ -28,6 +31,7 @@ export const useWinnerStore = create<WinnerState>((set, get) => ({
   escrowAccount: null,
   repaymentSchedule: null,
   winnerBuffer: null,
+  simulationDay: 45,
   isLoading: false,
   error: null,
 
@@ -42,6 +46,7 @@ export const useWinnerStore = create<WinnerState>((set, get) => ({
         escrowAccount: escrow,
         repaymentSchedule: repayment,
         winnerBuffer: buffer,
+        simulationDay: escrow?.elapsedDays ?? 45,
         isLoading: false,
       });
     } catch (err) {
@@ -81,11 +86,22 @@ export const useWinnerStore = create<WinnerState>((set, get) => ({
     }
   },
 
+  setSimulationDay: (day: number) => {
+    const clamped = Math.max(0, Math.min(180, Math.round(Number.isFinite(day) ? day : 0)));
+    set({ simulationDay: clamped });
+  },
+
+  resetSimulationDay: () => {
+    const currentElapsed = get().escrowAccount?.elapsedDays ?? 45;
+    set({ simulationDay: currentElapsed });
+  },
+
   resetWinnerStore: () => {
     set({
       escrowAccount: null,
       repaymentSchedule: null,
       winnerBuffer: null,
+      simulationDay: 45,
       isLoading: false,
       error: null,
     });

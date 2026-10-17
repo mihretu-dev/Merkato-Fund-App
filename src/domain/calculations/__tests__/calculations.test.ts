@@ -24,6 +24,8 @@ import {
   calculateRepaymentScenario,
   estimateRepaymentDays,
   calculateBufferStatus,
+  calculateBufferReplenishment,
+  calculateRealityCheck,
 } from '../repayment';
 import {
   simulateDemoDraw,
@@ -329,5 +331,168 @@ describe('6. Algorithmic Draw Demonstration Simulator', () => {
         }),
       RangeError
     );
+  });
+});
+
+describe('7. Day 6: Six-Month Escrow & Cumulative Interest Checkpoints', () => {
+  it('correctly computes cumulative simple interest at Day 0, Day 15, Day 90, and Day 180', () => {
+    // 1,000,000 ETB @ 22% ACT/365
+    // Day 0: 0 ETB
+    assert.equal(calculateAccruedInterest(1000000, 0.22, 0, 365), 0);
+
+    // Day 15: 1,000,000 * 0.22 * (15 / 365) = 9,041.0958... ETB
+    const interest15 = calculateAccruedInterest(1000000, 0.22, 15, 365);
+    assert.ok(Math.abs(interest15 - 9041.1) < 0.01);
+
+    // Day 45: 1,000,000 * 0.22 * (45 / 365) = 27,123.2876... ETB
+    const interest45 = calculateAccruedInterest(1000000, 0.22, 45, 365);
+    assert.ok(Math.abs(interest45 - 27123.29) < 0.01);
+
+    // Day 90: 1,000,000 * 0.22 * (90 / 365) = 54,246.5753... ETB
+    const interest90 = calculateAccruedInterest(1000000, 0.22, 90, 365);
+    assert.ok(Math.abs(interest90 - 54246.58) < 0.01);
+
+    // Day 180: 1,000,000 * 0.22 * (180 / 365) = 108,493.1506... ETB
+    const interest180 = calculateAccruedInterest(1000000, 0.22, 180, 365);
+    assert.ok(Math.abs(interest180 - 108493.15) < 0.01);
+  });
+
+  it('correctly computes remaining principal and fees under Scenario A (500 + 50)', () => {
+    const configA = {
+      prizeAmountETB: 1000000,
+      dailyPrincipalRepaymentETB: 500,
+      dailyAdminFeeETB: 50,
+    };
+
+    // Day 0
+    const day0 = calculateRepaymentScenario(0, configA);
+    assert.equal(day0.principalRepaidETB, 0);
+    assert.equal(day0.adminFeesRepaidETB, 0);
+    assert.equal(day0.remainingPrincipalETB, 1000000);
+
+    // Day 15
+    const day15 = calculateRepaymentScenario(15, configA);
+    assert.equal(day15.principalRepaidETB, 7500);
+    assert.equal(day15.adminFeesRepaidETB, 750);
+    assert.equal(day15.remainingPrincipalETB, 992500);
+
+    // Day 90
+    const day90 = calculateRepaymentScenario(90, configA);
+    assert.equal(day90.principalRepaidETB, 45000);
+    assert.equal(day90.adminFeesRepaidETB, 4500);
+    assert.equal(day90.remainingPrincipalETB, 955000);
+
+    // Day 180 (End of escrow lock)
+    const day180 = calculateRepaymentScenario(180, configA);
+    assert.equal(day180.principalRepaidETB, 90000);
+    assert.equal(day180.adminFeesRepaidETB, 9000);
+    // Principal debt is NOT cleared: 910,000 ETB remains
+    assert.equal(day180.remainingPrincipalETB, 910000);
+  });
+
+  it('correctly computes remaining principal under Scenario B (550 Flat Principal)', () => {
+    const configB = {
+      prizeAmountETB: 1000000,
+      dailyPrincipalRepaymentETB: 550,
+      dailyAdminFeeETB: 0,
+    };
+
+    // Day 0
+    const day0 = calculateRepaymentScenario(0, configB);
+    assert.equal(day0.principalRepaidETB, 0);
+    assert.equal(day0.adminFeesRepaidETB, 0);
+    assert.equal(day0.remainingPrincipalETB, 1000000);
+
+    // Day 15
+    const day15 = calculateRepaymentScenario(15, configB);
+    assert.equal(day15.principalRepaidETB, 8250);
+    assert.equal(day15.remainingPrincipalETB, 991750);
+
+    // Day 90
+    const day90 = calculateRepaymentScenario(90, configB);
+    assert.equal(day90.principalRepaidETB, 49500);
+    assert.equal(day90.remainingPrincipalETB, 950500);
+
+    // Day 180 (End of escrow lock)
+    const day180 = calculateRepaymentScenario(180, configB);
+    assert.equal(day180.principalRepaidETB, 99000);
+    assert.equal(day180.remainingPrincipalETB, 901000);
+  });
+
+  it('rigorously separates principal, administrative fees, and interest yield', () => {
+    const elapsedDays = 60;
+    const config = {
+      prizeAmountETB: 1000000,
+      dailyPrincipalRepaymentETB: 500,
+      dailyAdminFeeETB: 50,
+    };
+
+    const scenario = calculateRepaymentScenario(elapsedDays, config);
+    const accruedInterest = calculateAccruedInterest(1000000, 0.22, elapsedDays, 365);
+
+    // Principal repaid: 60 * 500 = 30,000
+    assert.equal(scenario.principalRepaidETB, 30000);
+    // Fees: 60 * 50 = 3,000 (Fees do not reduce principal)
+    assert.equal(scenario.adminFeesRepaidETB, 3000);
+    // Debt balance: 1,000,000 - 30,000 = 970,000 (Fees NOT subtracted)
+    assert.equal(scenario.remainingPrincipalETB, 970000);
+    // Total cash out: 33,000
+    assert.equal(scenario.totalPaidETB, 33000);
+    // Interest yield is distinct from debt reduction:
+    assert.ok(accruedInterest > 0);
+    assert.notEqual(scenario.remainingPrincipalETB, 1000000 - accruedInterest);
+  });
+
+  it('tracks 15-day buffer replenishment schedule and documents unresolved funding', () => {
+    // Day 0: 0 cycles completed, next is day 15
+    const rep0 = calculateBufferReplenishment(0);
+    assert.equal(rep0.completedCycles, 0);
+    assert.equal(rep0.cumulativeReplenishedETB, 0);
+    assert.equal(rep0.nextReplenishmentDay, 15);
+    assert.equal(rep0.daysUntilNextReplenishment, 15);
+    assert.equal(rep0.fundingSource, 'unresolved_funding_rule');
+    assert.ok(rep0.fundingNote.includes('does NOT define who funds'));
+
+    // Day 15: 1 cycle completed, next is day 30
+    const rep15 = calculateBufferReplenishment(15);
+    assert.equal(rep15.completedCycles, 1);
+    assert.equal(rep15.cumulativeReplenishedETB, 7500);
+    assert.equal(rep15.nextReplenishmentDay, 30);
+    assert.equal(rep15.daysUntilNextReplenishment, 15);
+
+    // Day 45: 3 cycles completed
+    const rep45 = calculateBufferReplenishment(45);
+    assert.equal(rep45.completedCycles, 3);
+    assert.equal(rep45.cumulativeReplenishedETB, 22500);
+
+    // Day 180: 12 cycles completed
+    const rep180 = calculateBufferReplenishment(180);
+    assert.equal(rep180.completedCycles, 12);
+    assert.equal(rep180.cumulativeReplenishedETB, 90000);
+  });
+
+  it('computes financial reality check and proves 15-day buffer cash flow deficit', () => {
+    const rc = calculateRealityCheck(45, DEFAULT_DEMO_CONFIG, '500_plus_50');
+
+    // Daily interest at 1M @ 22%: ~602.74 ETB
+    assert.ok(Math.abs(rc.dailyInterestYieldETB - 602.74) < 0.01);
+    // Daily repayment: 550 ETB
+    assert.equal(rc.dailyTotalRepaymentETB, 550);
+    // Daily surplus: +52.74 ETB
+    assert.ok(Math.abs(rc.dailyInterestSurplusETB - 52.74) < 0.01);
+
+    // 15-day interest surplus: 15 * 52.74 = +791.10 ETB
+    assert.ok(Math.abs(rc.cycle15InterestSurplusETB - 791.1) < 0.01);
+    // 15-day buffer requirement: 7,500 ETB
+    assert.equal(rc.cycle15BufferRequirementETB, 7500);
+    // Net cash flow deficit: 791.10 - 7500 = -6,708.90 ETB
+    assert.ok(Math.abs(rc.cycle15NetCashFlowETB - -6708.9) < 0.01);
+    assert.equal(rc.is15DayBufferSelfSustaining, false);
+
+    // Remaining debt at Day 180: 910,000 ETB
+    assert.equal(rc.remainingPrincipalAtDay180ETB, 910000);
+    // Payoff continues for 1,820 additional days (~5 years) after lock
+    assert.equal(rc.postEscrowPayoffDays, 1820);
+    assert.equal(rc.totalPayoffDays, 2000);
   });
 });

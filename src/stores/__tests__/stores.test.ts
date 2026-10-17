@@ -281,6 +281,45 @@ describe('Zustand Stores Test Suite', () => {
       const updatedBuffer = useWinnerStore.getState().winnerBuffer?.currentBufferBalanceETB;
       assert.equal(updatedBuffer, prevBuffer - 500);
     });
+
+    it('manages simulationDay with strict clamping between 0 and 180', async () => {
+      await useWinnerStore.getState().loadWinnerData('user-bethlehem-002');
+      assert.equal(useWinnerStore.getState().simulationDay, 45);
+
+      // Clamp negative to 0
+      useWinnerStore.getState().setSimulationDay(-10);
+      assert.equal(useWinnerStore.getState().simulationDay, 0);
+
+      // Clamp > 180 to 180
+      useWinnerStore.getState().setSimulationDay(250);
+      assert.equal(useWinnerStore.getState().simulationDay, 180);
+
+      // Set valid day 90
+      useWinnerStore.getState().setSimulationDay(90);
+      assert.equal(useWinnerStore.getState().simulationDay, 90);
+
+      // Reset restores loaded account elapsedDays (45)
+      useWinnerStore.getState().resetSimulationDay();
+      assert.equal(useWinnerStore.getState().simulationDay, 45);
+    });
+
+    it('changing simulationDay does not mutate contribution ledger or create transactions', async () => {
+      const initialContribs = useContributionStore.getState().contributions.length;
+
+      useWinnerStore.getState().setSimulationDay(180);
+      useWinnerStore.getState().setSimulationDay(0);
+      useWinnerStore.getState().setSimulationDay(90);
+
+      assert.equal(useContributionStore.getState().contributions.length, initialContribs);
+    });
+
+    it('resetWinnerStore clears winner data and resets simulationDay to 45', () => {
+      useWinnerStore.getState().setSimulationDay(120);
+      useWinnerStore.getState().resetWinnerStore();
+
+      assert.equal(useWinnerStore.getState().escrowAccount, null);
+      assert.equal(useWinnerStore.getState().simulationDay, 45);
+    });
   });
 
   describe('5. useDemoConfigStore', () => {

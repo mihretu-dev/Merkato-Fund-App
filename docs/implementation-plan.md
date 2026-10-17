@@ -167,21 +167,41 @@ gantt
 
 ---
 
-### Day 6: Winner Experience (6-Month Blocked Escrow, 22% Interest & Buffer)
-- **Objective**: Deliver the core financial value proposition of the 1,000,000 ETB blocked escrow.
+### Day 6: Six-Month Escrow, Interest Accrual, Repayment & Buffer Simulator (COMPLETE & VERIFIED)
+- **Objective**: Deliver a transparent, interactive financial simulation of the winner's 1,000,000 ETB escrow account, 22% ACT/365 interest accrual, dual-scenario repayment schedule, 15-day rolling buffer, and mathematical cash flow reality check.
 - **Deliverables**:
-  - **Winner Hub Screen (`app/(tabs)/winner.tsx`)**:
-    - 1,000,000 ETB Blocked Escrow Account card (CBE escrow account badge).
-    - **Live 22% Interest Accrual Ticker**:
-      - Real-time ticking counter showing micro-accrual based on $602.74 \text{ ETB / day}$.
-    - **6-Month Milestone Timeline (`TimelineView.tsx`)**:
-      - Visual 180-day progress bar highlighting month-by-month unlocks.
-  - **Repayment Schedule & Reality Inspector (`app/modals/repayment-breakdown.tsx`)**:
-    - Interactive comparison between 500 ETB/day and 550 ETB/day.
-    - Clear visualization of the interest offset ($602.74 \text{ interest} - 550 \text{ payment} = +52.74 \text{ ETB/day surplus}$).
-  - **Winner's Operational Buffer Card (`src/components/domain/BufferStatusCard.tsx`)**:
-    - 7,500 ETB buffer balance monitor.
-    - 15-day replenishment countdown and simulated auto-top-up trigger.
+  - **Six-Month Interactive Timeline Controller (`app/(tabs)/winner.tsx`)**:
+    - Clamped simulation day controller (Day 0 to Day 180) with step controls (`-15d`, `-1d`, `+1d`, `+15d`) and key checkpoint presets (Day 0, Day 15, Day 30, Day 45, Day 90, Day 135, Day 180).
+    - Synchronizes all financial figures dynamically without mutating user contribution history or adding unwanted ledger transactions.
+  - **Escrow Account Breakdown**:
+    - Illustrative opening balance: 1,000,000 ETB principal held under Commercial Bank of Ethiopia (CBE) custody with `DEMO-` prefix.
+    - Accrued interest calculated via ACT/365 simple interest (`calculateAccruedInterest`).
+    - Clear segregation between blocked principal and accrued interest; explicit notice that interest is locked in bank custody and non-withdrawable during the 180-day period.
+    - Explicitly labels annual rate (22%) and bank custody as unverified model assumptions.
+  - **Repayment Scenario Inspector (Scenario A vs Scenario B)**:
+    - Interactive switch between Scenario A (500 ETB principal + 50 ETB fee = 550 ETB/day) and Scenario B (550 ETB flat principal, 0 fee).
+    - Cumulative principal repaid and administrative fees separated rigorously (fees do NOT reduce principal).
+    - Post-escrow payoff horizon: highlights that at Day 180 unlock, ~910,000 ETB (Scenario A) or 901,000 ETB (Scenario B) of principal debt remains unpaid, requiring 1,820 or 1,639 additional daily payments (~5 more years) to fully repay.
+  - **15-Day Buffer Simulator (`calculateBufferStatus`, `calculateBufferReplenishment`)**:
+    - 7,500 ETB buffer balance monitor tracking daily burn over a 15-day cycle.
+    - Cumulative replenishment requirement tracking: `completedCycles * 7,500 ETB`.
+    - Documents explicitly that the source material lacks a defined funding rule for who pays for buffer replenishments (`unresolved_funding_rule`).
+  - **Financial Reality Check & Cash Flow Solvency Section (`calculateRealityCheck`)**:
+    - Visual cash flow comparison: +602.74 ETB daily interest yield vs -550.00 ETB daily repayment = +52.74 ETB/day surplus.
+    - 15-day cash flow contradiction: +791.10 ETB accumulated interest surplus vs 7,500 ETB buffer replenishment requirement = **-6,708.90 ETB net deficit per 15-day cycle** if the buffer is expected to be funded from interest.
+  - **Automated Tests (`src/domain/calculations/__tests__/calculations.test.ts`, `src/stores/__tests__/stores.test.ts`)**:
+    - Expanded test suite to **76 passing unit tests** across 20 suites covering all 11 prompt criteria:
+      1. Correct daily simple interest calculation (ACT/365).
+      2. Cumulative interest at Day 0, Day 15, Day 90, and Day 180.
+      3. Remaining principal under Scenario A.
+      4. Remaining principal under Scenario B.
+      5. Strict separation of principal, fees, and interest.
+      6. Buffer replenishment schedule accounting.
+      7. Explicit handling of undefined buffer funding rules.
+      8. Clamping simulation day to [0, 180] range.
+      9. Changing simulation day does not mutate contribution transactions.
+      10. Reset restores intended simulation state.
+      11. Financial calculations remain consistent across UI and domain modules.
 
 ---
 

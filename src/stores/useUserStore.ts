@@ -9,16 +9,30 @@ import { User, DemoPersonaId } from '@/src/domain/types';
 import { mockMerkatoService } from '@/src/services/mock/MockMerkatoService';
 import { MOCK_PERSONAS } from '@/src/services/mock/mockData';
 
+const getInitialOnboardingStatus = (): boolean => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      return window.localStorage.getItem('merkato_onboarding_completed') === 'true';
+    } catch {
+      return false;
+    }
+  }
+  return false;
+};
+
 interface UserState {
   currentPersonaId: DemoPersonaId;
   currentUser: User;
   availablePersonas: Record<DemoPersonaId, User>;
   isLoading: boolean;
   error: string | null;
+  hasCompletedOnboarding: boolean;
 
   // Actions
   switchPersona: (personaId: DemoPersonaId) => Promise<User>;
   updateCurrentUser: (partial: Partial<User>) => void;
+  setHasCompletedOnboarding: (completed: boolean) => void;
+  resetOnboarding: () => void;
   resetUserStore: () => void;
 }
 
@@ -28,6 +42,29 @@ export const useUserStore = create<UserState>((set, get) => ({
   availablePersonas: { ...MOCK_PERSONAS },
   isLoading: false,
   error: null,
+  hasCompletedOnboarding: getInitialOnboardingStatus(),
+
+  setHasCompletedOnboarding: (completed: boolean) => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem('merkato_onboarding_completed', completed ? 'true' : 'false');
+      } catch {
+        // ignore
+      }
+    }
+    set({ hasCompletedOnboarding: completed });
+  },
+
+  resetOnboarding: () => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.removeItem('merkato_onboarding_completed');
+      } catch {
+        // ignore
+      }
+    }
+    set({ hasCompletedOnboarding: false });
+  },
 
   switchPersona: async (personaId: DemoPersonaId) => {
     set({ isLoading: true, error: null });

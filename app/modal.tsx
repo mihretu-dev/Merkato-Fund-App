@@ -1,11 +1,13 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, StyleSheet, ScrollView, View, Text } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { colors, spacing, typography, radii } from '@/src/theme/tokens';
-import { Card, DemoBadge, DisclaimerNotice } from '@/src/components/ui';
+import { Card, DemoBadge, DisclaimerNotice, AppButton } from '@/src/components/ui';
 
 export default function ModalScreen() {
+  const router = useRouter();
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -41,6 +43,32 @@ export default function ModalScreen() {
           <Text style={styles.bulletPoint}>
             • <Text style={styles.bold}>Seeded Draw Simulator:</Text> The algorithmic draw is an explicit client-side demonstration, not a verified production lottery.
           </Text>
+        </Card>
+
+        <Card style={styles.card} variant="elevated">
+          <Text style={styles.cardTitle}>Evaluator Quick Navigation</Text>
+          <Text style={styles.cardBody}>
+            Jump directly to any demonstration flow or restart the educational walkthrough:
+          </Text>
+          <View style={styles.modalActionRow}>
+            <AppButton
+              title="📖 Replay 3-Slide Onboarding"
+              variant="outline"
+              onPress={() => router.push('/onboarding')}
+              style={{ marginBottom: spacing.xs }}
+            />
+            <AppButton
+              title="👥 Choose Evaluation Persona"
+              variant="outline"
+              onPress={() => router.push('/persona-select')}
+              style={{ marginBottom: spacing.xs }}
+            />
+            <AppButton
+              title="🔍 Developer State Verification"
+              variant="outline"
+              onPress={() => router.push('/(tabs)/verify')}
+            />
+          </View>
         </Card>
 
         <DisclaimerNotice />
@@ -93,5 +121,9 @@ const styles = StyleSheet.create({
   bold: {
     color: colors.dark.textPrimary,
     fontWeight: typography.fontWeights.semibold,
+  },
+  modalActionRow: {
+    marginTop: spacing.sm,
+    gap: spacing.xs,
   },
 });

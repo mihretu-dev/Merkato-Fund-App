@@ -1,8 +1,12 @@
 /**
  * Merkato Fund — Member Dashboard Screen
  *
- * Primary landing screen displaying active persona status, daily streak,
- * contribution status (paid vs due), and today's draw ticket status.
+ * Primary landing screen delivering a complete first-time & returning member experience:
+ * - Ethiopian greeting & active persona indicator
+ * - Daily 50 ETB contribution status & quick payment trigger
+ * - 14-day visual streak tracker & recent synthetic activity ledger snippet
+ * - Tonight's 1,000,000 ETB algorithmic draw ticket display or empty state
+ * - Quick evaluator shortcuts to Replay Onboarding, Persona Selection, and Verification
  */
 
 import React, { useEffect } from 'react';
@@ -39,8 +43,10 @@ export default function MemberDashboardScreen() {
 
   const currentUser = useUserStore((s) => s.currentUser);
   const currentPersonaId = useUserStore((s) => s.currentPersonaId);
+  const hasCompletedOnboarding = useUserStore((s) => s.hasCompletedOnboarding);
 
   const paidToday = useContributionStore((s) => s.paidToday);
+  const contributions = useContributionStore((s) => s.contributions);
   const loadUserContributions = useContributionStore((s) => s.loadUserContributions);
 
   const activeDraw = useDrawStore((s) => s.activeDraw);
@@ -50,6 +56,14 @@ export default function MemberDashboardScreen() {
   const escrowAccount = useWinnerStore((s) => s.escrowAccount);
   const loadWinnerData = useWinnerStore((s) => s.loadWinnerData);
 
+  // First-time evaluator check: redirect to onboarding walkthrough if not completed
+  useEffect(() => {
+    if (!hasCompletedOnboarding) {
+      router.replace('/onboarding');
+    }
+  }, [hasCompletedOnboarding]);
+
+  // Hydrate user data on mount and persona change
   useEffect(() => {
     if (currentUser?.id) {
       loadUserContributions(currentUser.id);
@@ -60,21 +74,87 @@ export default function MemberDashboardScreen() {
 
   const activeTodayTickets = userTickets.filter((t) => t.drawId === activeDraw?.id);
 
+  // Amharic + English greeting tailored to active persona
+  const getGreeting = () => {
+    const firstName = currentUser.fullName.split(' ')[0];
+    if (currentUser.role === 'winner') {
+      return {
+        amharic: 'እንኳን ደህና መጡ ፣',
+        name: `${firstName}!`,
+        subtitle: 'የተቆለፈ የ1 ሚሊዮን ብር የባንክ ሒሳብ እና የቀን ወለድ ክትትል',
+      };
+    }
+    if (currentUser.role === 'admin') {
+      return {
+        amharic: 'እንኳን ደህና መጡ ፣',
+        name: `${firstName}!`,
+        subtitle: 'የፈንድ ተጠቃሚዎች እና የፋይናንስ ሞዴል ክትትል ዳሽቦርድ',
+      };
+    }
+    return {
+      amharic: 'ሰላም ፣',
+      name: `${firstName}!`,
+      subtitle: 'የመርካቶ የዕቁብ ፈንድ • የቀን 50 ብር መዋጮ እና የዕጣ ተሳትፎ',
+    };
+  };
+
+  const greeting = getGreeting();
+  const recentContributions = contributions.slice(0, 3);
+
+  // Build a 7-day visual streak indicator
+  const streakDays = currentUser.activeStreakDays || 0;
+  const recentDays = [
+    { day: 'M', active: streakDays >= 6 },
+    { day: 'T', active: streakDays >= 5 },
+    { day: 'W', active: streakDays >= 4 },
+    { day: 'T', active: streakDays >= 3 },
+    { day: 'F', active: streakDays >= 2 },
+    { day: 'S', active: streakDays >= 1 },
+    { day: 'Today', active: paidToday, isToday: true },
+  ];
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Top Branding & Demo Badge */}
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}>
+        {/* Top Header Bar */}
         <View style={styles.topBar}>
           <View>
-            <Text style={styles.brandTitle}>Merkato Fund</Text>
-            <Text style={styles.brandSubtitle}>የመርካቶ የዕቁብ ፈንድ • Demo Prototype</Text>
+            <Text style={styles.topBarBrand}>Merkato Fund • የመርካቶ ፈንድ</Text>
+            <Text style={styles.dateLabel}>ጥቅምት 7 2019 ዓ.ም • Oct 17, 2026</Text>
           </View>
-          <DemoBadge label="DEMO PROTOTYPE" />
+          <View style={styles.topRightActions}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Replay Onboarding Walkthrough"
+              onPress={() => router.push('/onboarding')}
+              style={styles.headerIconButton}>
+              <Text style={styles.headerIconText}>📖 Tour</Text>
+            </TouchableOpacity>
+            <DemoBadge label="DEMO PROTOTYPE" />
+          </View>
         </View>
 
-        {/* Compact Persona Switcher */}
+        {/* Personalized Welcome Banner */}
+        <View style={styles.greetingHeader}>
+          <Text style={styles.greetingAmharic}>
+            {greeting.amharic} <Text style={styles.greetingName}>{greeting.name}</Text>
+          </Text>
+          <Text style={styles.greetingSubtitle}>{greeting.subtitle}</Text>
+        </View>
+
+        {/* Inline Persona Switcher Header */}
         <View style={styles.personaSwitcherSection}>
-          <Text style={styles.sectionLabel}>SWITCH DEMO PERSONA</Text>
+          <View style={styles.personaSectionHeader}>
+            <Text style={styles.sectionLabel}>SWITCH DEMO PERSONA</Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Open Full Persona Selector Screen"
+              onPress={() => router.push('/persona-select')}>
+              <Text style={styles.viewAllPersonasLink}>Detailed View →</Text>
+            </TouchableOpacity>
+          </View>
           <PersonaSelector compact />
         </View>
 
@@ -139,7 +219,7 @@ export default function MemberDashboardScreen() {
               <StatusPill status="locked" label="DAY 45 OF 180" size="small" />
             </View>
             <Text style={styles.bannerText}>
-              1,000,000 ETB locked in Commercial Bank of Ethiopia (CBE) escrow. Generating 602.74 ETB daily interest (22% p.a.).
+              1,000,000 ETB locked in Commercial Bank of Ethiopia (CBE) escrow. Generating ~602.74 ETB daily interest (22% p.a.).
             </Text>
             <AppButton
               title="Inspect 6-Month Escrow & Repayments →"
@@ -168,7 +248,7 @@ export default function MemberDashboardScreen() {
           </Card>
         )}
 
-        {/* Daily Contribution Status Card */}
+        {/* Daily 50 ETB Contribution Status Card */}
         <Card style={styles.sectionCard} variant="elevated">
           <View style={styles.cardHeaderRow}>
             <Text style={styles.cardSectionTitle}>Daily 50 ETB Micro-Contribution</Text>
@@ -184,10 +264,38 @@ export default function MemberDashboardScreen() {
               : 'Pay your 50 ETB daily contribution to maintain your 14-day streak and secure your algorithmic draw ticket for tonight.'}
           </Text>
 
+          {/* Visual Streak Week Tracker */}
+          <View style={styles.streakTrackerContainer}>
+            <View style={styles.streakTrackerHeader}>
+              <Text style={styles.streakTrackerLabel}>7-DAY CONTRIBUTION STREAK</Text>
+              <Text style={styles.streakCountBadge}>🔥 {currentUser.activeStreakDays} Days</Text>
+            </View>
+            <View style={styles.streakDotsRow}>
+              {recentDays.map((d, idx) => (
+                <View key={idx} style={styles.streakDotColumn}>
+                  <View
+                    style={[
+                      styles.streakDot,
+                      d.active ? styles.streakDotActive : styles.streakDotInactive,
+                      d.isToday && styles.streakDotToday,
+                    ]}>
+                    <Text style={styles.streakDotCheck}>
+                      {d.active ? '✓' : d.isToday ? '!' : '·'}
+                    </Text>
+                  </View>
+                  <Text style={[styles.streakDayLabel, d.isToday && styles.streakDayLabelToday]}>
+                    {d.day}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Action Row */}
           <View style={styles.actionRow}>
             {paidToday ? (
               <AppButton
-                title="View Transaction History"
+                title="View Contribution Ledger & Receipts"
                 variant="outline"
                 onPress={() => router.push('/(tabs)/contribute')}
                 fullWidth
@@ -251,21 +359,77 @@ export default function MemberDashboardScreen() {
           />
         </Card>
 
-        {/* Developer Day 2 Quick Verification Link */}
+        {/* Recent Activity Card */}
+        {recentContributions.length > 0 && (
+          <Card style={styles.sectionCard} variant="surface">
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardSectionTitle}>Recent Synthetic Activity</Text>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="View full transaction history"
+                onPress={() => router.push('/(tabs)/contribute')}>
+                <Text style={styles.viewAllPersonasLink}>View All ({contributions.length}) →</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.recentList}>
+              {recentContributions.map((rec) => (
+                <View key={rec.id} style={styles.recentItemRow}>
+                  <View style={styles.recentLeft}>
+                    <Text style={styles.recentIcon}>
+                      {rec.channel === 'telebirr' ? '📱' : '🏦'}
+                    </Text>
+                    <View>
+                      <Text style={styles.recentChannel}>
+                        {rec.channel === 'telebirr' ? 'Telebirr Micro-Pay' : 'CBE Birr'}
+                      </Text>
+                      <Text style={styles.recentDate}>{rec.date} • Streak #{rec.streakDay}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.recentRight}>
+                    <Text style={styles.recentAmount}>-{formatETB(rec.amountETB)}</Text>
+                    <StatusPill status="healthy" label="COMPLETED" size="small" />
+                  </View>
+                </View>
+              ))}
+            </View>
+          </Card>
+        )}
+
+        {/* Evaluator Quick Action Hub */}
         <Card style={styles.devCard} variant="outline">
           <View style={styles.cardHeaderRow}>
-            <Text style={styles.devTitle}>🛠️ Day 2 Verification Harness</Text>
-            <StatusPill status="info" label="DEV TESTER" size="small" />
+            <Text style={styles.devTitle}>🛠️ Evaluator Shortcuts</Text>
+            <StatusPill status="info" label="DEMO CONTROLS" size="small" />
           </View>
           <Text style={styles.devDesc}>
-            Verify persona transitions, state updates across stores, contribution submissions, draw simulations, and demo resets in one screen.
+            Quickly navigate between demonstration walkthroughs, persona roles, and automated state verification.
           </Text>
-          <AppButton
-            title="Open State Verification Harness"
-            variant="outline"
-            onPress={() => router.push('/(tabs)/verify')}
-            style={{ marginTop: spacing.xs }}
-          />
+          <View style={styles.evaluatorButtonsRow}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Replay 3-slide Onboarding"
+              onPress={() => router.push('/onboarding')}
+              style={styles.evaluatorButton}>
+              <Text style={styles.evaluatorButtonText}>📖 Replay Onboarding</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Open Persona Selector Screen"
+              onPress={() => router.push('/persona-select')}
+              style={styles.evaluatorButton}>
+              <Text style={styles.evaluatorButtonText}>👥 Persona Selector</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Open Day 2 State Verification"
+              onPress={() => router.push('/(tabs)/verify')}
+              style={styles.evaluatorButton}>
+              <Text style={styles.evaluatorButtonText}>🔍 State Verification</Text>
+            </TouchableOpacity>
+          </View>
         </Card>
 
         {/* Mandatory Safety Notice */}
@@ -283,32 +447,87 @@ const styles = StyleSheet.create({
   container: {
     padding: spacing.md,
     paddingBottom: spacing.huge,
+    maxWidth: 640,
+    alignSelf: 'center',
+    width: '100%',
   },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  topBarBrand: {
+    ...typography.caption,
+    color: colors.primaryLight,
+    fontWeight: '700',
+    fontSize: 12,
+    letterSpacing: 0.5,
+  },
+  dateLabel: {
+    ...typography.caption,
+    color: colors.dark.textMuted,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  topRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerIconButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radii.sm,
+    backgroundColor: colors.dark.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.dark.surfaceBorder,
+  },
+  headerIconText: {
+    ...typography.caption,
+    color: colors.accentGold,
+    fontWeight: '700',
+    fontSize: 11,
+  },
+  greetingHeader: {
+    marginTop: spacing.xs,
     marginBottom: spacing.md,
   },
-  brandTitle: {
+  greetingAmharic: {
     ...typography.h2,
     color: colors.dark.textPrimary,
     fontSize: 22,
   },
-  brandSubtitle: {
-    ...typography.caption,
+  greetingName: {
+    color: colors.accentGold,
+    fontWeight: '700',
+  },
+  greetingSubtitle: {
+    ...typography.bodySmall,
     color: colors.dark.textSecondary,
     fontSize: 12,
+    marginTop: 2,
   },
   personaSwitcherSection: {
     marginBottom: spacing.md,
+  },
+  personaSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   sectionLabel: {
     ...typography.label,
     color: colors.dark.textMuted,
     fontSize: 10,
     letterSpacing: 0.8,
-    marginBottom: 4,
+  },
+  viewAllPersonasLink: {
+    ...typography.caption,
+    color: colors.accentGold,
+    fontWeight: '600',
+    fontSize: 11,
   },
   profileCard: {
     marginBottom: spacing.md,
@@ -410,6 +629,73 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: spacing.md,
   },
+  streakTrackerContainer: {
+    backgroundColor: colors.dark.surfaceElevated,
+    borderRadius: radii.md,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.dark.surfaceBorder,
+  },
+  streakTrackerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  streakTrackerLabel: {
+    ...typography.label,
+    fontSize: 10,
+    color: colors.dark.textMuted,
+    letterSpacing: 0.8,
+  },
+  streakCountBadge: {
+    ...typography.caption,
+    color: colors.accentGold,
+    fontWeight: '700',
+    fontSize: 11,
+  },
+  streakDotsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  streakDotColumn: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  streakDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  streakDotActive: {
+    backgroundColor: colors.primary,
+  },
+  streakDotInactive: {
+    backgroundColor: colors.dark.surface,
+    borderWidth: 1,
+    borderColor: colors.dark.surfaceBorder,
+  },
+  streakDotToday: {
+    borderWidth: 2,
+    borderColor: colors.accentGold,
+  },
+  streakDotCheck: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 11,
+  },
+  streakDayLabel: {
+    ...typography.caption,
+    fontSize: 10,
+    color: colors.dark.textMuted,
+  },
+  streakDayLabelToday: {
+    color: colors.accentGold,
+    fontWeight: '700',
+  },
   actionRow: {
     marginTop: spacing.xs,
   },
@@ -472,6 +758,45 @@ const styles = StyleSheet.create({
     color: colors.dark.textMuted,
     lineHeight: 18,
   },
+  recentList: {
+    gap: spacing.xs,
+  },
+  recentItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  recentLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  recentIcon: {
+    fontSize: 18,
+  },
+  recentChannel: {
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.dark.textPrimary,
+  },
+  recentDate: {
+    ...typography.caption,
+    color: colors.dark.textMuted,
+    fontSize: 11,
+  },
+  recentRight: {
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  recentAmount: {
+    ...typography.bodySmall,
+    fontWeight: '700',
+    color: colors.dark.textPrimary,
+    fontSize: 13,
+  },
   devCard: {
     marginBottom: spacing.md,
     backgroundColor: '#111827',
@@ -488,5 +813,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     marginVertical: 4,
+  },
+  evaluatorButtonsRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  evaluatorButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: radii.md,
+    backgroundColor: colors.dark.surfaceElevated,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.dark.surfaceBorder,
+  },
+  evaluatorButtonText: {
+    ...typography.caption,
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.accentGold,
+    textAlign: 'center',
   },
 });

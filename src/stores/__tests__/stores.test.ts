@@ -53,6 +53,16 @@ describe('Zustand Stores Test Suite', () => {
       assert.equal(user.role, 'admin');
       assert.equal(user.fullName, 'Abebe Kebede');
     });
+
+    it('tracks and toggles onboarding completion status', () => {
+      // Set completed
+      useUserStore.getState().setHasCompletedOnboarding(true);
+      assert.equal(useUserStore.getState().hasCompletedOnboarding, true);
+
+      // Reset onboarding
+      useUserStore.getState().resetOnboarding();
+      assert.equal(useUserStore.getState().hasCompletedOnboarding, false);
+    });
   });
 
   describe('2. useContributionStore', () => {

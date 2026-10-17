@@ -86,22 +86,31 @@ gantt
 
 ---
 
-### Day 3: Welcome Onboarding, Persona Switcher & Member Dashboard
-- **Objective**: Deliver the initial user entry flow and the primary Member Dashboard.
+### Day 3: Welcome Onboarding, Persona Selection & Member Dashboard (COMPLETE & VERIFIED)
+- **Objective**: Deliver the initial user entry flow, clean persona selection, and the refined Member Dashboard.
 - **Deliverables**:
-  - **Onboarding Carousel (`app/(auth)/onboarding.tsx`)**:
-    - Slide 1: "Reversing Capital Flow" (Equb + Lottery + Bank + Market).
-    - Slide 2: "50 Birr Daily Micro-Contribution".
-    - Slide 3: "1,000,000 Birr Payout & 6-Month Self-Paying Block".
-    - Clear demo disclaimer badge.
-  - **Sign-In & Fast Persona Switcher (`app/(auth)/sign-in.tsx`)**:
-    - 1-tap quick login for demo evaluators (Pre-win Contributor vs Active Winner vs Admin).
+  - **Onboarding Carousel (`app/onboarding.tsx`)**:
+    - 3-slide educational walkthrough:
+      - Slide 1: "A Different Approach to Equb" (Equb + Draw + Bank Escrow + Capital Markets).
+      - Slide 2: "Daily 50 ETB Micro-Contribution Model" (Continuous streak & algorithmic ticket issuance).
+      - Slide 3: "Draw, Escrow & Repayment Process" (1M ETB CBE blocked escrow, 22% ACT/365 interest, 500+50 repayment, 7,500 buffer, and reality check post-180 days).
+    - Clear Next, Back, Skip to Demo, and Get Started navigation actions.
+    - Prominent `DemoBadge` and visible `DisclaimerNotice` on every slide.
+  - **Demo Persona Selection Screen (`app/persona-select.tsx`)**:
+    - Dedicated entry selection screen for Dawit Haile (Member), Bethlehem Tadesse (Winner), and Abebe Kebede (Admin/Auditor).
+    - Explains exact demonstration scope each persona unlocks.
+    - Re-hydrates all Zustand stores synchronously via `switchPersona`.
+    - No real authentication credentials or live data collected.
+    - Quick actions to Enter Dashboard or Replay Onboarding.
   - **Member Dashboard (`app/(tabs)/index.tsx`)**:
-    - Ethiopian greeting and user persona pill.
-    - Daily Contribution Status card (Paid today vs Due).
-    - 14-Day Calendar Streak visualizer.
-    - Next Algorithmic Draw Countdown live widget.
-    - Quick-action buttons (Pay 50 ETB, View Tickets).
+    - Ethiopian greeting ("ሰላም / Welcome, Dawit!", "እንኳን ደህና መጡ").
+    - Active persona indicator chip and quick inline/modal switcher.
+    - Daily 50 ETB Contribution Status (PAID TODAY vs PAYMENT DUE).
+    - 7-day visual streak tracker and recent synthetic activity ledger snippet.
+    - Tonight's 1,000,000 ETB algorithmic draw card with simulation-only wording and ticket status.
+    - Primary quick actions (Contribute, Draw, Winner Escrow, Admin Pool, Replay Onboarding).
+  - **Automated Tests (`src/stores/__tests__/stores.test.ts`)**:
+    - Expanded test suite to **55 passing unit tests** across 19 suites. Verified `hasCompletedOnboarding`, `setHasCompletedOnboarding`, and `resetOnboarding`.
 
 ---
 

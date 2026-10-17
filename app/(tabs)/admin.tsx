@@ -64,7 +64,7 @@ export default function AdminScreen() {
     const surplusMembers = currentMembers - requiredMembers;
 
     setAuditMessage(
-      `✅ SOLVENCY AUDIT PASSED: ${currentMembers.toLocaleString()} active daily members exceeds the 20,000 threshold by +${surplusMembers.toLocaleString()} members (+${formatETB(surplusMembers * 50)} surplus daily).`
+      `ℹ️ DEMO SENSITIVITY EVALUATION: Under the hypothetical scenario of ${currentMembers.toLocaleString()} members paying 50 ETB/day, daily collections (${formatETB(currentMembers * 50)}) mathematically exceed the 1M ETB prize by +${surplusMembers.toLocaleString()} member contributions (+${formatETB(surplusMembers * 50)} theoretical difference). This illustrates mathematical sensitivity to scale, NOT verified operating performance or proof of financial solvency.`
     );
   };
 
@@ -116,7 +116,7 @@ export default function AdminScreen() {
         {/* Header */}
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.screenTitle}>Compliance & Pool Audit</Text>
+            <Text style={styles.screenTitle}>Compliance & Pool Model</Text>
             <Text style={styles.screenSubtitle}>
               Auditor: {currentUser.fullName} • {currentUser.occupation}
             </Text>
@@ -130,28 +130,34 @@ export default function AdminScreen() {
           </View>
         )}
 
-        {/* 1. Solvency Summary Card */}
+        {/* 1. Synthetic Solvency & Scale Card */}
         <Card style={styles.solvencyCard} variant="elevated">
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Daily Pool Solvency Analysis</Text>
-            <StatusPill status="healthy" label="SOLVENT (20K+ FLOOR)" />
+            <Text style={styles.cardTitle}>Synthetic Pool Feasibility & Scale Model</Text>
+            <StatusPill status="caution" label="SYNTHETIC MODEL (20K FLOOR)" />
+          </View>
+
+          <View style={styles.disclaimerCallout}>
+            <Text style={styles.disclaimerCalloutText}>
+              ⚠️ SYNTHETIC DEMONSTRATION ASSUMPTIONS: The figures below (24,850 contributors, 1,242,500 ETB inflow, and 242,500 ETB reserve) are purely hypothetical demo parameters. They do NOT represent verified Merkato Fund operating data, live user accounts, or audited financial solvency.
+            </Text>
           </View>
 
           <Text style={styles.cardSubtitle}>
-            To sustain a daily 1,000,000 ETB payout at 50 ETB/member, a mathematical floor of 20,000 active daily contributors is strictly required.
+            To sustain a daily 1,000,000 ETB payout at 50 ETB/member, a mathematical scale floor of exactly 20,000 active daily contributors is strictly required (20,000 × 50 ETB = 1,000,000 ETB). Any operational shortfall below 20,000 members creates an immediate deficit unless subsidized.
           </Text>
 
           <View style={styles.metricsGrid}>
             <MetricTile
-              label="Active Contributors"
+              label="Assumed Contributors"
               value={activeMembers.toLocaleString()}
-              subtitle="Req: 20,000 floor"
+              subtitle="Hypothetical demo assumption"
               highlight
             />
             <MetricTile
-              label="Daily Inflow"
+              label="Model Daily Inflow"
               value={formatETB(poolBalance)}
-              subtitle="@ 50 ETB / member"
+              subtitle="@ 50 ETB / assumed member"
             />
           </View>
 
@@ -159,17 +165,17 @@ export default function AdminScreen() {
             <MetricTile
               label="Draw Allocation"
               value={formatETB(prizeAllocated)}
-              subtitle="Daily capital prize"
+              subtitle="Stated daily capital prize"
             />
             <MetricTile
-              label="Reserve Surplus"
+              label="Model Reserve Difference"
               value={formatETB(reserveFund)}
-              subtitle="+24.25% buffer fund"
+              subtitle="Hypothetical model surplus"
             />
           </View>
 
           <AppButton
-            title="Run Real-Time Pool Solvency Audit"
+            title="Evaluate Scale Sensitivity Scenario"
             variant="outline"
             onPress={handleRunSolvencyAudit}
             style={{ marginTop: spacing.md }}
@@ -364,5 +370,18 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     fontWeight: '700',
     color: colors.dark.textPrimary,
+  },
+  disclaimerCallout: {
+    backgroundColor: '#1C1608',
+    borderColor: colors.accentGoldDark,
+    borderWidth: 1,
+    borderRadius: radii.sm,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  disclaimerCalloutText: {
+    ...typography.caption,
+    color: colors.accentGoldLight,
+    lineHeight: 15,
   },
 });

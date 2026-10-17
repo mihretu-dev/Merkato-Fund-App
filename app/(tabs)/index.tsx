@@ -157,7 +157,7 @@ export default function MemberDashboardScreen() {
               <StatusPill status="info" label="ADMIN PREVIEW" size="small" />
             </View>
             <Text style={styles.bannerText}>
-              Reviewing pool solvency, daily 1M ETB prize reserve, and algorithmic draw audit trails.
+              Reviewing synthetic pool feasibility assumptions, 20,000-member scale floor, and demo draw audit trails.
             </Text>
             <AppButton
               title="Open Compliance & Pool Analytics →"
@@ -232,7 +232,7 @@ export default function MemberDashboardScreen() {
                 {activeTodayTickets[0].ticketNumber}
               </Text>
               <Text style={styles.ticketSub}>
-                Issued {activeTodayTickets[0].issuedAt.split('T')[1].slice(0, 5)} EAT • Verified Deterministic Seed
+                Issued {activeTodayTickets[0].issuedAt.split('T')[1].slice(0, 5)} EAT • Demonstration Ticket (Client-Side Simulation)
               </Text>
             </View>
           ) : (

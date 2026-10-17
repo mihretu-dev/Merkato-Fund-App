@@ -31,6 +31,7 @@ import {
 
 import { useUserStore } from '@/src/stores/useUserStore';
 import { useWinnerStore } from '@/src/stores/useWinnerStore';
+import { useDemoConfigStore } from '@/src/stores/useDemoConfigStore';
 import { formatETB } from '@/src/domain/calculations/currency';
 
 export default function WinnerScreen() {
@@ -43,15 +44,24 @@ export default function WinnerScreen() {
   const recordRepayment = useWinnerStore((s) => s.recordRepayment);
   const replenishBuffer = useWinnerStore((s) => s.replenishBuffer);
 
+  const config = useDemoConfigStore((s) => s.config);
+  const repaymentDailyModel = useDemoConfigStore((s) => s.repaymentDailyModel);
+
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
   const isWinnerPersona = currentUser.role === 'winner' || escrowAccount !== null;
+
+  const dailyPrincipal = config.dailyPrincipalRepaymentETB;
+  const dailyAdminFee = config.dailyAdminFeeETB;
+  const dailyTotalOutflow = dailyPrincipal + dailyAdminFee;
 
   const handleRecordRepayment = async () => {
     try {
       setActionNotice(null);
       await recordRepayment(currentUser.id, 'telebirr');
-      setActionNotice('✅ Daily repayment installment of 550 ETB recorded (500 principal + 50 fee). 500 ETB buffer drawn.');
+      setActionNotice(
+        `✅ Daily repayment installment of ${formatETB(dailyTotalOutflow)} recorded (${formatETB(dailyPrincipal)} principal + ${formatETB(dailyAdminFee)} fee). ${formatETB(dailyPrincipal)} buffer drawn.`
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Repayment failed';
       Alert.alert('Simulation', msg);
@@ -76,6 +86,7 @@ export default function WinnerScreen() {
   const dailyYield = escrowAccount?.dailyInterestYieldETB || 602.74;
   const accruedYield = escrowAccount?.accruedInterestETB || 27123.3;
   const projectedYield = escrowAccount?.projectedTotalInterestETB || 108493.15;
+  const netDailyFlow = dailyYield - dailyTotalOutflow;
 
   const remainingPrincipal = repaymentSchedule?.remainingPrincipalETB || 977_500;
   const installmentsDone = repaymentSchedule?.installmentsCompleted || 45;
@@ -194,10 +205,18 @@ export default function WinnerScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.cashFlowTitle}>Net Daily Cash Flow During Lock:</Text>
               <Text style={styles.cashFlowCalc}>
-                +602.74 ETB (Yield) - 550.00 ETB (Repayment)
+                +{formatETB(dailyYield)} (Yield) - {formatETB(dailyTotalOutflow)} (Repayment)
               </Text>
             </View>
-            <Text style={styles.cashFlowSurplus}>+52.74 ETB / day</Text>
+            <Text style={styles.cashFlowSurplus}>
+              {netDailyFlow >= 0 ? '+' : ''}{formatETB(netDailyFlow)} / day
+            </Text>
+          </View>
+
+          <View style={styles.modelDisclaimerBox}>
+            <Text style={styles.modelDisclaimerText}>
+              ⚠️ NON-CONTRACTUAL ARITHMETIC: This illustrative surplus applies strictly during the 180-day lock while 1M ETB remains on deposit at CBE. Once unlocked at Month 6, interest ceases, leaving ~910,000 ETB in unpaid debt requiring ongoing repayment. This does not constitute an authoritative bank offer or proof of long-term viability.
+            </Text>
           </View>
         </Card>
 
@@ -205,28 +224,32 @@ export default function WinnerScreen() {
         <Card style={styles.sectionCard} variant="elevated">
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>Daily Repayment Obligation</Text>
-            <StatusPill status="info" label="550 ETB / DAY" size="small" />
+            <StatusPill status="info" label={`${dailyTotalOutflow} ETB / DAY`} size="small" />
           </View>
 
           <Text style={styles.cardSubtitle}>
-            Administrative fees (50 ETB) are segregated from principal debt (500 ETB).
+            {repaymentDailyModel === '500_plus_50'
+              ? 'Model A: 50 ETB administrative fee is segregated from 500 ETB principal debt.'
+              : repaymentDailyModel === '550_bundle'
+              ? 'Model B: 550 ETB flat repayment is applied directly to principal (no separate fee).'
+              : 'Model C: 500 ETB flat repayment without administrative fee.'}
           </Text>
 
           <View style={styles.breakdownRow}>
             <View style={styles.breakdownItem}>
               <Text style={styles.breakdownItemLabel}>Daily Principal</Text>
-              <Text style={styles.breakdownItemVal}>500.00 ETB</Text>
+              <Text style={styles.breakdownItemVal}>{formatETB(dailyPrincipal)}</Text>
             </View>
             <Text style={styles.breakdownPlus}>+</Text>
             <View style={styles.breakdownItem}>
               <Text style={styles.breakdownItemLabel}>Admin Fee</Text>
-              <Text style={styles.breakdownItemVal}>50.00 ETB</Text>
+              <Text style={styles.breakdownItemVal}>{formatETB(dailyAdminFee)}</Text>
             </View>
             <Text style={styles.breakdownEquals}>=</Text>
             <View style={styles.breakdownItem}>
               <Text style={styles.breakdownItemLabel}>Total Outflow</Text>
               <Text style={[styles.breakdownItemVal, { color: colors.accentGold }]}>
-                550.00 ETB
+                {formatETB(dailyTotalOutflow)}
               </Text>
             </View>
           </View>
@@ -245,7 +268,7 @@ export default function WinnerScreen() {
           </View>
 
           <AppButton
-            title={isLoading ? 'Processing...' : 'Simulate 1-Day Repayment Installment (550 ETB)'}
+            title={isLoading ? 'Processing...' : `Simulate 1-Day Repayment Installment (${formatETB(dailyTotalOutflow)})`}
             variant="primary"
             loading={isLoading}
             onPress={handleRecordRepayment}
@@ -544,5 +567,18 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontWeight: '700',
     color: colors.dark.textPrimary,
+  },
+  modelDisclaimerBox: {
+    backgroundColor: '#1E1609',
+    borderColor: colors.accentGoldDark,
+    borderWidth: 1,
+    borderRadius: radii.sm,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  modelDisclaimerText: {
+    ...typography.caption,
+    color: colors.accentGoldLight,
+    lineHeight: 15,
   },
 });

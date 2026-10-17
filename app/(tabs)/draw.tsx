@@ -103,14 +103,14 @@ export default function DrawRoomScreen() {
             />
           </View>
 
-          {/* Transparency Seed */}
+          {/* Demonstration Seed Explanation */}
           <View style={styles.seedBox}>
-            <Text style={styles.seedLabel}>SHA-256 TRANSPARENCY HASH SEED</Text>
+            <Text style={styles.seedLabel}>DEMONSTRATION SEED (EXPLANATION OF PROTOTYPE LOGIC)</Text>
             <Text style={styles.seedHash} numberOfLines={1} ellipsizeMode="middle">
               {activeDraw?.hashSeed || '0x7f4b82d399c26a5e1104e6c382b9e4a1932e65d836bc49e17b8f95c249a8e210'}
             </Text>
             <Text style={styles.seedNote}>
-              Provably fair demonstration seed generated prior to ticket submission window.
+              This SHA-256 seed illustrates how a future provably-fair draw could anchor ticket selection. The current client-side implementation is a local mock demonstration using FNV-1a hashing. It is NOT a production-grade, cryptographic, or independently verified lottery certified by the National Lottery Administration (NLA).
             </Text>
           </View>
 
@@ -143,7 +143,7 @@ export default function DrawRoomScreen() {
                 Timestamp: {lastDrawResult.draw.completedAt?.replace('T', ' ').slice(0, 19)} EAT
               </Text>
               <Text style={styles.winnerDisclaimer}>
-                ⚠️ This draw was executed client-side for demonstration and architectural evaluation. Not certified by the National Lottery Administration.
+                ⚠️ Client-side demonstration simulation for review and architectural evaluation. This is NOT a certified lottery result or legally binding prize.
               </Text>
             </View>
           </Card>

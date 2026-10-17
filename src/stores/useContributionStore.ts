@@ -66,6 +66,17 @@ export const useContributionStore = create<ContributionState>((set, get) => ({
         isLoading: false,
       }));
 
+      // Dynamically sync user store (streak, wallet balance) and draw store (auto-issued ticket)
+      // to eliminate any possibility of out-of-sync stores
+      try {
+        const { useUserStore } = await import('./useUserStore');
+        const { useDrawStore } = await import('./useDrawStore');
+        useUserStore.getState().updateCurrentUser(result.updatedUser);
+        useDrawStore.getState().addUserTicket(result.ticket);
+      } catch {
+        // Safe fallback if called during early test bootstrapping
+      }
+
       return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to submit contribution';

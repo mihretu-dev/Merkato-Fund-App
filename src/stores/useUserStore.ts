@@ -38,6 +38,22 @@ export const useUserStore = create<UserState>((set, get) => ({
         currentUser: user,
         isLoading: false,
       });
+
+      // Synchronously re-hydrate dependent stores for the new persona
+      try {
+        const { useContributionStore } = await import('./useContributionStore');
+        const { useDrawStore } = await import('./useDrawStore');
+        const { useWinnerStore } = await import('./useWinnerStore');
+
+        await Promise.all([
+          useContributionStore.getState().loadUserContributions(user.id),
+          useDrawStore.getState().loadDrawData(user.id),
+          useWinnerStore.getState().loadWinnerData(user.id),
+        ]);
+      } catch {
+        // Safe fallback for isolated unit tests
+      }
+
       return user;
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to switch persona';

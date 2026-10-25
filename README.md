@@ -14,19 +14,25 @@ This application evaluates a novel Ethiopian fintech model combining traditional
 
 ---
 
-## 📱 Visual Experience & Screenshot Gallery
+## 📱 Mobile Architecture & Screens Overview
 
-Here are live captures from testing on a physical Android device across Light and Dark themes:
+The prototype features seven fully interactive screens with complete Dark and Light theme compliance, full Amharic (`አማርኛ`) localization, and real Ethiopian calendar synchronization:
 
-| Screen | Light Mode | Dark Mode |
-| :--- | :---: | :---: |
-| **Onboarding & Carousel** | <img src="screenshots/phase10_light_onboarding.png" width="220" alt="Onboarding Light" /> | <img src="screenshots/phase10_dark_onboarding.png" width="220" alt="Onboarding Dark" /> |
-| **Persona Selection** | <img src="screenshots/phase10_light_persona_select.png" width="220" alt="Persona Light" /> | <img src="screenshots/phase10_dark_persona_select.png" width="220" alt="Persona Dark" /> |
-| **Member Dashboard** | <img src="screenshots/android_light_dashboard.png" width="220" alt="Home Light" /> | <img src="screenshots/android_dark_dashboard.png" width="220" alt="Home Dark" /> |
-| **Daily 50 ETB Contribution** | <img src="screenshots/android_light_contribute.png" width="220" alt="Contribute Light" /> | <img src="screenshots/android_dark_contribute.png" width="220" alt="Contribute Dark" /> |
-| **Algorithmic Draw Room** | <img src="screenshots/android_light_draw.png" width="220" alt="Draw Light" /> | <img src="screenshots/android_dark_draw.png" width="220" alt="Draw Dark" /> |
-| **1M ETB Escrow & Winner Hub** | <img src="screenshots/android_light_winner.png" width="220" alt="Winner Light" /> | <img src="screenshots/android_dark_winner.png" width="220" alt="Winner Dark" /> |
-| **More & Settings** | <img src="screenshots/android_light_more.png" width="220" alt="More Light" /> | <img src="screenshots/android_dark_more.png" width="220" alt="More Dark" /> |
+1. **Onboarding Carousel (`app/onboarding.tsx`)**:
+   - 4 swipeable slides illustrating the hybrid model, daily 50 ETB habit, algorithmic fairness, and bank escrow vault.
+   - Quick one-tap theme toggle (`☀️ / 🌙`), instant language switcher (`English` / `አማርኛ`), and clickable Merkato emblem opening company profile.
+2. **Persona Selector (`app/persona-select.tsx`)**:
+   - Role-based evaluation switcher between Dawit (Member), Bethlehem (Winner), and Abebe (Admin/Auditor).
+3. **Member Dashboard (`app/(tabs)/index.tsx`)**:
+   - Real-time time-based greeting (*Good morning / Good evening / እንደምን አደሩ*), authentic Ethiopian calendar date in Amharic, and synchronized notifications drawer.
+4. **Daily Micro-Contribution (`app/(tabs)/contribute.tsx`)**:
+   - Simulated 50 ETB contribution flow supporting Telebirr, CBE Birr, and Awash Birr with ledger tracking.
+5. **Algorithmic Draw Room (`app/(tabs)/draw.tsx`)**:
+   - Client-side 32-bit FNV-1a hash modulo lottery draw simulator with winner reveal.
+6. **Winner & Escrow Hub (`app/(tabs)/winner.tsx`)**:
+   - 1,000,000 ETB 6-month escrow account earning 22% annual yield (ACT/365 convention) and 15-day buffer status.
+7. **More & Settings (`app/(tabs)/admin.tsx`)**:
+   - Appearance mode switcher, 20,000-member solvency audit, and full interactive viewer for **The Merkato Manifesto** and **The Paradigm Shift (Get-to-Pay vs Pay-to-Get)**.
 
 ---
 

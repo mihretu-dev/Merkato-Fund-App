@@ -1,14 +1,15 @@
 /**
  * Merkato Fund — Contribution & Payment Screen
  *
- * Premium mobile payment experience:
- * 1. Compact screen heading with demo checkout indicator
- * 2. Dominant 50.00 ETB payment amount & dynamic Due/Paid status
- * 3. Restrained payment method selection (Telebirr, CBE Birr, Awash Birr)
- * 4. Prominent Review & Confirm action button
- * 5. Refined confirmation modal and success receipt flow
- * 6. Secondary contribution history ledger with tabular numerical alignment
- * 7. Concise prototype disclosures and safe area handling
+ * Hierarchy:
+ * 1. Compact header with back navigation.
+ * 2. Focused 50 ETB Daily Contribution card.
+ * 3. Grouped payment channels with clear radio selection.
+ * 4. "Continue" CTA in comfortable reach right below channels.
+ * 5. Low-profile simulation notice.
+ * 6. Compact transaction history with "View all" expansion.
+ * 7. Preserved two-step confirmation modal & receipt dialog.
+ * 8. Complete English and Amharic localization.
  */
 
 import React, { useState } from 'react';
@@ -24,53 +25,40 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/tokens';
-import {
-  Card,
-  AppButton,
-  DemoBadge,
-  StatusPill,
-  DisclaimerNotice,
-} from '@/src/components/ui';
+import { useTheme } from '@/src/theme/tokens';
+import { Card, AppButton, DisclaimerNotice } from '@/src/components/ui';
 
 import { useUserStore } from '@/src/stores/useUserStore';
 import { useContributionStore } from '@/src/stores/useContributionStore';
 import { useDrawStore } from '@/src/stores/useDrawStore';
 import { PaymentChannel, DrawTicket } from '@/src/domain/types';
 import { formatETB } from '@/src/domain/calculations/currency';
+import { useTranslation } from '@/src/i18n/useTranslation';
 
 interface ChannelOption {
   id: PaymentChannel;
-  label: string;
-  amharicLabel: string;
-  color: string;
-  desc: string;
+  labelKey: 'telebirr' | 'cbeBirr' | 'awashBirr';
+  subtitleKey: 'telebirrDesc' | 'cbeBirrDesc' | 'awashBirrDesc';
   icon: string;
 }
 
 const CHANNELS: ChannelOption[] = [
   {
     id: 'telebirr',
-    label: 'Telebirr',
-    amharicLabel: 'ቴሌብር',
-    color: colors.telebirr,
-    desc: 'Instant mobile wallet USSD push simulation',
+    labelKey: 'telebirr',
+    subtitleKey: 'telebirrDesc',
     icon: '📱',
   },
   {
     id: 'cbe_birr',
-    label: 'CBE Birr',
-    amharicLabel: 'ሲቢኢ ብር',
-    color: colors.cbeBirr,
-    desc: 'Commercial Bank of Ethiopia debit simulation',
+    labelKey: 'cbeBirr',
+    subtitleKey: 'cbeBirrDesc',
     icon: '🏦',
   },
   {
     id: 'awash_birr',
-    label: 'Awash Birr',
-    amharicLabel: 'አዋሽ ብር',
-    color: '#B45309',
-    desc: 'Awash Bank digital micro-payment simulation',
+    labelKey: 'awashBirr',
+    subtitleKey: 'awashBirrDesc',
     icon: '💳',
   },
 ];
@@ -78,6 +66,8 @@ const CHANNELS: ChannelOption[] = [
 export default function ContributeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { theme, colors, isDark } = useTheme();
+  const { t, format, isAmharic } = useTranslation();
 
   const currentUser = useUserStore((s) => s.currentUser);
   const updateCurrentUser = useUserStore((s) => s.updateCurrentUser);
@@ -91,6 +81,7 @@ export default function ContributeScreen() {
   const [selectedChannel, setSelectedChannel] = useState<PaymentChannel>('telebirr');
   const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [showAllHistory, setShowAllHistory] = useState<boolean>(false);
 
   // Success state payload
   const [successData, setSuccessData] = useState<{
@@ -101,35 +92,31 @@ export default function ContributeScreen() {
   } | null>(null);
 
   const selectedChannelInfo = CHANNELS.find((c) => c.id === selectedChannel) || CHANNELS[0];
+  const visibleContributions = showAllHistory ? contributions : contributions.slice(0, 2);
 
-  // Open review modal with validation
   const handleOpenReview = () => {
     if (paidToday) {
       Alert.alert(
-        'Contribution Already Settled',
-        'You have already contributed 50 ETB for today (2026-10-17). Duplicate payments are blocked.'
+        isAmharic ? 'መዋጮ ተከናውኗል' : 'Contribution Settled',
+        isAmharic
+          ? 'የዛሬውን 50 ብር መዋጮ አስቀድመው አጠናቀዋል። ተጨማሪ ተደጋጋሚ ክፍያዎች ተገድበዋል።'
+          : 'You have already contributed 50 ETB for today (2026-10-17). Duplicate payments are blocked to protect your simulated balance.'
       );
       return;
     }
     setShowReviewModal(true);
   };
 
-  // Confirm and execute simulated payment
   const handleConfirmPayment = async () => {
-    if (isSubmitting) return; // Prevent double tap
-
     setIsSubmitting(true);
     try {
-      // Natural local simulation delay (600ms) to provide clear feedback
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       const result = await submitDailyContribution(currentUser.id, selectedChannel, 50);
 
-      // Ensure stores are in exact sync
       updateCurrentUser(result.updatedUser);
       addUserTicket(result.ticket);
 
-      // Close review modal and trigger success state
       setShowReviewModal(false);
       setSuccessData({
         reference: result.contribution.transactionReference,
@@ -138,431 +125,291 @@ export default function ContributeScreen() {
         channel: selectedChannel,
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Contribution submission failed.';
-      Alert.alert('Payment Simulation Error', msg);
+      const msg = err instanceof Error ? err.message : (isAmharic ? 'መዋጮው አልተሳካም' : 'Contribution submission failed.');
+      Alert.alert(isAmharic ? 'የክፍያ ማሳሰቢያ' : 'Payment Notice', msg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCloseSuccess = () => {
-    setSuccessData(null);
-  };
-
   return (
-    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
+    <View style={[styles.screen, { backgroundColor: theme.background, paddingTop: Math.max(insets.top, 16) }]}>
       <ScrollView
         contentContainerStyle={[
           styles.container,
-          { paddingBottom: Math.max(insets.bottom, 16) + spacing.xl },
+          { paddingBottom: Math.max(insets.bottom, 16) + 84 },
         ]}
         showsVerticalScrollIndicator={false}>
 
-        {/* 1. Compact Screen Heading */}
-        <View style={styles.topBar}>
-          <View style={styles.topBarLeft}>
-            <Text style={styles.screenTitle}>Daily Contribution</Text>
-            <Text style={styles.screenSubtitle}>
-              Daily 50 ETB micro-contribution • Ethiopian Equb Pool
-            </Text>
-          </View>
-          <DemoBadge compact label="SIMULATED" />
+        {/* 1. Header Bar */}
+        <View style={styles.headerBar}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Back to Dashboard"
+            onPress={() => router.push('/(tabs)')}
+            style={styles.backButton}>
+            <Text style={[styles.backArrow, { color: theme.textPrimary }]}>‹</Text>
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>
+            {t.contribute.title}
+          </Text>
+          <View style={styles.headerRightPlaceholder} />
         </View>
 
-        {/* 2. Primary Payment Amount & Status Hero Card */}
-        <Card
-          style={[styles.heroCard, !paidToday && styles.heroCardDue]}
-          variant="elevated">
-          <View style={styles.heroTopRow}>
-            <View>
-              <Text style={styles.heroLabel}>TODAY'S CONTRIBUTION AMOUNT</Text>
-              <View style={styles.heroAmountRow}>
-                <Text style={styles.heroAmount}>50.00</Text>
-                <Text style={styles.heroCurrency}>ETB</Text>
-              </View>
+        {/* 2. Hero Card: Daily Contribution 50 ETB */}
+        <Card style={styles.heroCard} variant="surface">
+          <View style={styles.heroRow}>
+            <View style={[styles.heroIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+              <Text style={styles.heroIconText}>💵</Text>
             </View>
-            <StatusPill
-              status={paidToday ? 'healthy' : 'caution'}
-              label={paidToday ? 'PAID TODAY' : 'DUE TODAY'}
-            />
-          </View>
-
-          <Text style={styles.heroDescription}>
-            {paidToday
-              ? `✓ 50 ETB settled for today (2026-10-17). Active streak maintained at ${currentUser.activeStreakDays} days & entered into tonight's 1,000,000 ETB draw.`
-              : `Contribute 50 ETB to maintain your ${currentUser.activeStreakDays}-day streak and secure 1 algorithmic ticket for tonight's 1,000,000 ETB CBE escrow draw.`}
-          </Text>
-
-          {/* Quick Context Chips */}
-          <View style={styles.chipsRow}>
-            <View style={styles.chip}>
-              <Text style={styles.chipText}>🔥 Streak: {currentUser.activeStreakDays} Days</Text>
-            </View>
-            <View style={styles.chip}>
-              <Text style={styles.chipText}>
-                💼 Wallet: {formatETB(currentUser.simulatedWalletBalanceETB)}
+            <View style={styles.heroTextCol}>
+              <Text style={[styles.heroSubLabel, { color: theme.textSecondary }]}>
+                {t.contribute.fixedDailyAmount}
+              </Text>
+              <Text style={[styles.heroAmount, { color: theme.textPrimary }]}>
+                50 {t.common.currencyETB}
+              </Text>
+              <Text style={[styles.heroBenefit, { color: paidToday ? colors.primary : theme.textMuted }]}>
+                {paidToday ? (isAmharic ? '✓ የዛሬው ተጠናቋል' : '✓ Settled for today') : t.contribute.streakNotice}
               </Text>
             </View>
           </View>
         </Card>
 
-        {/* 3. Conditional Flow: Paid Today vs Payment Method Selection */}
-        {paidToday ? (
-          /* Already Paid View */
-          <Card style={styles.settledCard} variant="surface">
-            <View style={styles.settledHeaderRow}>
-              <Text style={styles.settledIcon}>✨</Text>
-              <View style={styles.settledTextCol}>
-                <Text style={styles.settledTitle}>50 ETB Settled for Today</Text>
-                <Text style={styles.settledSub}>
-                  Your daily contribution is complete. Duplicate payments are blocked to protect your simulated wallet.
-                </Text>
-              </View>
-            </View>
+        {/* 3. Payment Channel Selection */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+            {t.contribute.selectPaymentMethod}
+          </Text>
+        </View>
 
-            <View style={styles.settledActionsRow}>
-              <AppButton
-                title="View in Tonight's Draw Room →"
-                variant="primary"
-                onPress={() => router.push('/(tabs)/draw')}
-                style={{ flex: 1 }}
-              />
-              <AppButton
-                title="Dashboard"
-                variant="outline"
-                onPress={() => router.push('/(tabs)')}
-                style={{ flex: 1 }}
-              />
-            </View>
-          </Card>
-        ) : (
-          /* Unpaid View: Channel Selection & Primary Action */
-          <Card style={styles.selectionCard} variant="elevated">
-            <Text style={styles.sectionHeaderLabel}>
-              SELECT SIMULATED PAYMENT CHANNEL
-            </Text>
+        <Card style={styles.channelCard} variant="surface">
+          {CHANNELS.map((ch, index) => {
+            const isSelected = selectedChannel === ch.id;
+            const channelLabel = t.contribute[ch.labelKey];
+            const channelSubtitle = t.contribute[ch.subtitleKey];
 
-            <View style={styles.channelList}>
-              {CHANNELS.map((ch) => {
-                const isSelected = selectedChannel === ch.id;
-                return (
-                  <TouchableOpacity
-                    key={ch.id}
-                    accessibilityRole="radio"
-                    accessibilityLabel={`Select ${ch.label} payment channel`}
-                    accessibilityState={{ checked: isSelected }}
-                    activeOpacity={0.8}
-                    onPress={() => setSelectedChannel(ch.id)}
-                    style={[
-                      styles.channelItem,
-                      isSelected && styles.channelItemSelected,
-                    ]}>
-                    <View style={styles.channelLeft}>
-                      <View style={[styles.channelIconBox, isSelected && styles.channelIconBoxSelected]}>
-                        <Text style={styles.channelIcon}>{ch.icon}</Text>
-                      </View>
-                      <View style={styles.channelMeta}>
-                        <View style={styles.channelNameRow}>
-                          <Text style={[styles.channelName, isSelected && styles.channelNameSelected]}>
-                            {ch.label}
-                          </Text>
-                          <Text style={styles.channelAmharic}>{ch.amharicLabel}</Text>
-                        </View>
-                        <Text style={styles.channelDesc}>{ch.desc}</Text>
-                      </View>
-                    </View>
+            return (
+              <TouchableOpacity
+                key={ch.id}
+                accessibilityRole="radio"
+                accessibilityLabel={`Select ${channelLabel}`}
+                accessibilityState={{ checked: isSelected }}
+                onPress={() => setSelectedChannel(ch.id)}
+                style={[
+                  styles.channelRow,
+                  {
+                    borderBottomColor: theme.surfaceBorder,
+                    borderBottomWidth: index < CHANNELS.length - 1 ? StyleSheet.hairlineWidth : 0,
+                  },
+                ]}>
+                <View style={styles.channelLeft}>
+                  <View style={[styles.channelIconBox, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)' }]}>
+                    <Text style={styles.channelIcon}>{ch.icon}</Text>
+                  </View>
+                  <View>
+                    <Text style={[styles.channelLabel, { color: theme.textPrimary }]}>
+                      {channelLabel}
+                    </Text>
+                    <Text style={[styles.channelSub, { color: theme.textMuted }]}>
+                      {channelSubtitle}
+                    </Text>
+                  </View>
+                </View>
 
-                    <View style={styles.channelRight}>
-                      <View
-                        style={[
-                          styles.radioCircle,
-                          isSelected && styles.radioCircleSelected,
-                        ]}>
-                        {isSelected && <View style={styles.radioDot} />}
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+                {/* Radio Indicator */}
+                <View
+                  style={[
+                    styles.radioOuter,
+                    {
+                      borderColor: isSelected ? colors.primary : (isDark ? '#334155' : '#CBD5E1'),
+                      backgroundColor: isSelected ? colors.primary : 'transparent',
+                    },
+                  ]}>
+                  {isSelected && (
+                    <View style={styles.radioInner} />
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </Card>
 
-            {/* Simulation Notice Callout */}
-            <View style={styles.simNoticeCallout}>
-              <Text style={styles.simNoticeIcon}>🛡️</Text>
-              <Text style={styles.simNoticeText}>
-                Simulation Notice: Payment channels above are offline demonstration mockups. No real mobile money API (Telebirr USSD / CBE debit) is connected, and no live funds are debited.
+        {/* 4. Primary Action Button directly below channels */}
+        <AppButton
+          title={paidToday ? (isAmharic ? 'የዛሬውን የዕጣ ክፍል ይመልከቱ →' : "View in Tonight's Draw Room →") : (isAmharic ? 'ቀጥል →' : 'Continue →')}
+          variant="primary"
+          onPress={paidToday ? () => router.push('/(tabs)/draw') : handleOpenReview}
+          style={styles.continueButton}
+        />
+
+        {/* 5. Minimal Disclosure Notice */}
+        <DisclaimerNotice
+          icon="ℹ"
+          message={isAmharic ? 'ይህ የሙከራ ክፍያ ነው። ምንም እውነተኛ ገንዘብ አይቆረጥም።' : 'This is a simulated payment. No real money will be charged.'}
+          style={styles.disclosure}
+        />
+
+        {/* 6. Recent Contributions (Compact with View All expansion) */}
+        {contributions.length > 0 && (
+          <View style={styles.historySection}>
+            <View style={styles.historyHeaderRow}>
+              <Text style={[styles.historyTitle, { color: theme.textPrimary }]}>
+                {t.contribute.ledgerTitle}
               </Text>
+              {contributions.length > 2 && (
+                <TouchableOpacity onPress={() => setShowAllHistory(!showAllHistory)}>
+                  <Text style={[styles.toggleHistoryText, { color: colors.primary }]}>
+                    {showAllHistory ? (isAmharic ? 'አሳጥር' : 'Show less') : (isAmharic ? `ሁሉንም (${contributions.length})` : `View all (${contributions.length})`)}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
-            {/* Primary Action Button */}
-            <AppButton
-              title={`Review 50 ETB via ${selectedChannelInfo.label} →`}
-              variant="primary"
-              onPress={handleOpenReview}
-              style={{ marginTop: spacing.md }}
-            />
-          </Card>
+            <Card style={styles.historyCard} variant="surface">
+              {visibleContributions.map((c, idx) => (
+                <View
+                  key={c.id}
+                  style={[
+                    styles.historyItem,
+                    {
+                      borderBottomColor: theme.surfaceBorder,
+                      borderBottomWidth: idx < visibleContributions.length - 1 ? StyleSheet.hairlineWidth : 0,
+                    },
+                  ]}>
+                  <View style={styles.historyItemLeft}>
+                    <View style={[styles.recentCheckBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.12)' }]}>
+                      <Text style={[styles.recentCheckMark, { color: colors.primary }]}>✓</Text>
+                    </View>
+                    <View>
+                      <Text style={[styles.historyChannel, { color: theme.textPrimary }]}>
+                        {c.date} • {c.channel === 'telebirr' ? 'Telebirr' : c.channel === 'cbe_birr' ? 'CBE Birr' : 'Awash Birr'}
+                      </Text>
+                      <Text style={[styles.historyDate, { color: theme.textMuted }]}>
+                        {t.contribute.statusConfirmed} • 50 {t.common.currencyETB}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.historyItemRight}>
+                    <Text style={[styles.historyAmount, { color: theme.textPrimary }]}>
+                      50 {t.common.currencyETB}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </Card>
+          </View>
         )}
 
-        {/* 4. Secondary Section: Contribution History Ledger */}
-        <Card style={styles.historyCard} variant="surface">
-          <View style={styles.historyHeaderRow}>
-            <View>
-              <Text style={styles.historyTitle}>Contribution History</Text>
-              <Text style={styles.historySubtitle}>
-                Verified synthetic contribution records for {currentUser.fullName}
+        {/* 7. Review & Confirmation Modal */}
+        <Modal
+          visible={showReviewModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowReviewModal(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalBox, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
+                {isAmharic ? 'መዋጮውን ያረጋግጡ' : 'Confirm Contribution'}
               </Text>
-            </View>
-            <View style={styles.historyBadge}>
-              <Text style={styles.historyBadgeText}>{contributions.length} Records</Text>
+
+              <Text style={[styles.modalSub, { color: theme.textSecondary }]}>
+                {isAmharic ? 'የዕለታዊ መዋጮዎን ዝርዝር ይመልከቱ፡' : 'Review your simulated daily micro-contribution details:'}
+              </Text>
+
+              <View style={[styles.reviewRow, { borderBottomColor: theme.surfaceBorder }]}>
+                <Text style={[styles.reviewLabel, { color: theme.textSecondary }]}>{isAmharic ? 'መጠን' : 'Amount'}</Text>
+                <Text style={[styles.reviewValue, { color: theme.textPrimary }]}>50.00 {t.common.currencyETB}</Text>
+              </View>
+
+              <View style={[styles.reviewRow, { borderBottomColor: theme.surfaceBorder }]}>
+                <Text style={[styles.reviewLabel, { color: theme.textSecondary }]}>{isAmharic ? 'የመክፈያ ዘዴ' : 'Payment Channel'}</Text>
+                <Text style={[styles.reviewValue, { color: theme.textPrimary }]}>{t.contribute[selectedChannelInfo.labelKey]}</Text>
+              </View>
+
+              <View style={[styles.reviewRow, { borderBottomColor: theme.surfaceBorder }]}>
+                <Text style={[styles.reviewLabel, { color: theme.textSecondary }]}>{isAmharic ? 'ሽልማት' : 'Reward'}</Text>
+                <Text style={[styles.reviewValue, { color: colors.primary }]}>{isAmharic ? '1 የዕጣ ትኬት ተዘጋጅቷል' : '1 Draw Ticket Issued'}</Text>
+              </View>
+
+              <View style={styles.modalActions}>
+                <AppButton
+                  title={t.common.cancel}
+                  variant="outline"
+                  onPress={() => setShowReviewModal(false)}
+                  style={{ flex: 1, marginRight: 8 }}
+                />
+                <AppButton
+                  title={isSubmitting ? t.common.loading : t.common.confirm}
+                  variant="primary"
+                  loading={isSubmitting}
+                  onPress={handleConfirmPayment}
+                  style={{ flex: 1 }}
+                />
+              </View>
             </View>
           </View>
+        </Modal>
 
-          <View style={styles.historyList}>
-            {contributions.map((item, index) => (
-              <View
-                key={item.id}
-                style={[
-                  styles.historyItemRow,
-                  index === contributions.length - 1 && styles.historyItemRowLast,
-                ]}>
-                <View style={styles.historyItemLeft}>
-                  <View style={styles.historyItemIconBox}>
-                    <Text style={styles.historyItemIcon}>
-                      {item.channel === 'telebirr'
-                        ? '📱'
-                        : item.channel === 'cbe_birr'
-                        ? '🏦'
-                        : '💳'}
-                    </Text>
-                  </View>
-                  <View style={styles.historyItemMeta}>
-                    <Text style={styles.historyItemChannel}>
-                      {item.channel === 'telebirr'
-                        ? 'Telebirr Micro-Pay'
-                        : item.channel === 'cbe_birr'
-                        ? 'CBE Birr'
-                        : 'Awash Birr'}
-                    </Text>
-                    <Text style={styles.historyItemDate}>
-                      {item.date} • Streak Day #{item.streakDay}
-                    </Text>
-                    <Text style={styles.historyItemRef} numberOfLines={1}>
-                      {item.transactionReference}
-                    </Text>
-                  </View>
-                </View>
+        {/* 8. Success Receipt Modal */}
+        <Modal
+          visible={successData !== null}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setSuccessData(null)}>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalBox, { backgroundColor: theme.surface }]}>
+              <View style={[styles.receiptIconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+                <Text style={styles.receiptCheckEmoji}>✓</Text>
+              </View>
 
-                <View style={styles.historyItemRight}>
-                  <Text style={styles.historyItemAmount}>
-                    -{formatETB(item.amountETB)}
+              <Text style={[styles.modalTitle, { color: theme.textPrimary, textAlign: 'center' }]}>
+                {t.contribute.successTitle}
+              </Text>
+
+              <Text style={[styles.modalSub, { color: theme.textSecondary, textAlign: 'center' }]}>
+                {isAmharic
+                  ? `50 ብር በ${successData?.channel} በተሳካ ሁኔታ ተመዝግቧል።`
+                  : `50 ETB simulated payment recorded via ${successData?.channel}.`}
+              </Text>
+
+              <View style={[styles.receiptCard, { backgroundColor: isDark ? '#0B1220' : '#F8FAFC', borderColor: theme.surfaceBorder }]}>
+                <View style={styles.receiptRow}>
+                  <Text style={[styles.receiptLabel, { color: theme.textSecondary }]}>{isAmharic ? 'የዕጣ ትኬት' : 'Draw Ticket'}</Text>
+                  <Text style={[styles.receiptValueHighlight, { color: colors.primary }]}>
+                    #{successData?.ticket.ticketNumber}
                   </Text>
-                  <StatusPill status="healthy" label="COMPLETED" size="small" />
+                </View>
+
+                <View style={styles.receiptRow}>
+                  <Text style={[styles.receiptLabel, { color: theme.textSecondary }]}>{isAmharic ? 'ተከታታይ ቀናት' : 'Active Streak'}</Text>
+                  <Text style={[styles.receiptValue, { color: theme.textPrimary }]}>
+                    {format(t.home.streakDays, { days: successData?.streak || 1 })}
+                  </Text>
+                </View>
+
+                <View style={styles.receiptRow}>
+                  <Text style={[styles.receiptLabel, { color: theme.textSecondary }]}>{isAmharic ? 'የማረጋገጫ ቁጥር' : 'Ref #'}</Text>
+                  <Text style={[styles.receiptValueMono, { color: theme.textMuted }]}>
+                    {successData?.reference}
+                  </Text>
                 </View>
               </View>
-            ))}
-          </View>
-        </Card>
 
-        {/* 5. Prototype Disclaimer */}
-        <DisclaimerNotice />
-      </ScrollView>
-
-      {/* ------------------------------------------------------------- */}
-      {/* Review & Deliberate Confirmation Modal                        */}
-      {/* ------------------------------------------------------------- */}
-      <Modal
-        visible={showReviewModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => {
-          if (!isSubmitting) setShowReviewModal(false);
-        }}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalAmharic}>የክፍያ ማረጋገጫ</Text>
-                <Text style={styles.modalTitle}>Review Contribution</Text>
-              </View>
-              <DemoBadge compact label="SIMULATION" />
-            </View>
-
-            {/* Amount Summary */}
-            <View style={styles.modalAmountBox}>
-              <Text style={styles.modalAmountLabel}>CONTRIBUTION AMOUNT</Text>
-              <Text style={styles.modalAmountValue}>50.00 ETB</Text>
-              <Text style={styles.modalAmountSub}>
-                Daily Equb Micro-Contribution • 2026-10-17
-              </Text>
-            </View>
-
-            {/* Payment Details Table */}
-            <View style={styles.reviewTable}>
-              <View style={styles.reviewTableRow}>
-                <Text style={styles.reviewTableLabel}>Payment Channel:</Text>
-                <Text style={styles.reviewTableValue}>
-                  {selectedChannelInfo.icon} {selectedChannelInfo.label} (Simulated)
-                </Text>
-              </View>
-
-              <View style={styles.reviewTableRow}>
-                <Text style={styles.reviewTableLabel}>Payer Profile:</Text>
-                <Text style={styles.reviewTableValue}>{currentUser.fullName}</Text>
-              </View>
-
-              <View style={styles.reviewTableRow}>
-                <Text style={styles.reviewTableLabel}>Mobile Number:</Text>
-                <Text style={styles.reviewTableValue}>{currentUser.phoneNumber}</Text>
-              </View>
-
-              <View style={styles.reviewTableRow}>
-                <Text style={styles.reviewTableLabel}>New Streak Status:</Text>
-                <Text style={[styles.reviewTableValue, { color: colors.accentGold, fontWeight: '700' }]}>
-                  🔥 {currentUser.activeStreakDays + 1} Consecutive Days
-                </Text>
-              </View>
-
-              <View style={styles.reviewTableRow}>
-                <Text style={styles.reviewTableLabel}>Draw Entitlement:</Text>
-                <Text style={[styles.reviewTableValue, { color: colors.primaryLight, fontWeight: '700' }]}>
-                  🎟️ 1 Ticket in Tonight’s 1M ETB Draw
-                </Text>
-              </View>
-
-              <View style={[styles.reviewTableRow, { borderBottomWidth: 0 }]}>
-                <Text style={styles.reviewTableLabel}>Demo Reference:</Text>
-                <Text style={[styles.reviewTableValue, styles.monoText]}>
-                  DEMO-TX-20261017-PREVIEW
-                </Text>
-              </View>
-            </View>
-
-            {/* Deliberate Confirmation Notice */}
-            <View style={styles.reviewNoticeBox}>
-              <Text style={styles.reviewNoticeText}>
-                ⚠️ This is an offline simulation. Tapping confirm will record one synthetic transaction, increment your streak, and auto-issue your draw ticket. No real money will be charged.
-              </Text>
-            </View>
-
-            {/* Action Buttons */}
-            <View style={styles.modalActionsRow}>
               <AppButton
-                title="Cancel"
-                variant="outline"
-                disabled={isSubmitting}
-                onPress={() => setShowReviewModal(false)}
-                style={{ flex: 1 }}
-              />
-              <AppButton
-                title={isSubmitting ? 'Confirming...' : 'Confirm 50 ETB Demo Pay →'}
-                variant="gold"
-                loading={isSubmitting}
-                disabled={isSubmitting}
-                onPress={handleConfirmPayment}
-                style={{ flex: 2 }}
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ------------------------------------------------------------- */}
-      {/* Success Receipt Celebration Modal                             */}
-      {/* ------------------------------------------------------------- */}
-      <Modal
-        visible={successData !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={handleCloseSuccess}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {/* Celebration Header */}
-            <View style={styles.successHeader}>
-              <Text style={styles.successCelebrationIcon}>🎉</Text>
-              <Text style={styles.successAmharicTitle}>መዋጮዎ በተሳካ ሁኔታ ተመዝግቧል!</Text>
-              <Text style={styles.successTitle}>Contribution Confirmed</Text>
-              <StatusPill status="healthy" label="SIMULATED PAYMENT SUCCESS" size="small" />
-            </View>
-
-            {/* Receipt Card */}
-            <View style={styles.receiptCard}>
-              <View style={styles.receiptRow}>
-                <Text style={styles.receiptLabel}>Amount Paid:</Text>
-                <Text style={styles.receiptAmount}>50.00 ETB</Text>
-              </View>
-
-              <View style={styles.receiptRow}>
-                <Text style={styles.receiptLabel}>Transaction Reference:</Text>
-                <Text style={[styles.receiptValue, styles.monoText]}>
-                  {successData?.reference}
-                </Text>
-              </View>
-
-              <View style={styles.receiptRow}>
-                <Text style={styles.receiptLabel}>Payment Channel:</Text>
-                <Text style={styles.receiptValue}>
-                  {successData?.channel.toUpperCase()} (Simulated)
-                </Text>
-              </View>
-
-              <View style={styles.receiptRow}>
-                <Text style={styles.receiptLabel}>Active Streak:</Text>
-                <Text style={[styles.receiptValue, { color: colors.accentGold, fontWeight: '700' }]}>
-                  🔥 {successData?.streak} Days Continuous
-                </Text>
-              </View>
-            </View>
-
-            {/* Issued Ticket Display */}
-            {successData?.ticket && (
-              <View style={styles.issuedTicketCard}>
-                <Text style={styles.issuedTicketHeading}>TONIGHT'S ENTRY TICKET ISSUED</Text>
-                <Text style={styles.issuedTicketNumber}>
-                  {successData.ticket.ticketNumber}
-                </Text>
-                <Text style={styles.issuedTicketSub}>
-                  Entered in 20:00:00 EAT Algorithmic Draw (1,000,000 ETB Prize)
-                </Text>
-              </View>
-            )}
-
-            {/* Navigation Shortcuts */}
-            <View style={styles.successActions}>
-              <AppButton
-                title="View in Tonight's Draw Room →"
+                title={isAmharic ? 'ወደ ዕጣ ክፍሉ ይሂዱ →' : "Go to Tonight's Draw Room"}
                 variant="primary"
                 onPress={() => {
-                  handleCloseSuccess();
+                  setSuccessData(null);
                   router.push('/(tabs)/draw');
                 }}
-                fullWidth
-                style={{ marginBottom: spacing.xs }}
+                style={{ width: '100%', marginTop: 8 }}
               />
-
-              <AppButton
-                title="Return to Member Dashboard"
-                variant="outline"
-                onPress={() => {
-                  handleCloseSuccess();
-                  router.push('/(tabs)');
-                }}
-                fullWidth
-                style={{ marginBottom: spacing.xs }}
-              />
-
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Close receipt and review ledger"
-                onPress={handleCloseSuccess}
-                style={styles.dismissLink}>
-                <Text style={styles.dismissLinkText}>Dismiss & Review Ledger</Text>
-              </TouchableOpacity>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      </ScrollView>
     </View>
   );
 }
@@ -570,523 +417,263 @@ export default function ContributeScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.dark.background,
   },
   container: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
-    maxWidth: 600,
-    alignSelf: 'center',
-    width: '100%',
+    paddingHorizontal: 20,
+    paddingTop: 8,
   },
-
-  // 1. Top Bar
-  topBar: {
+  headerBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  topBarLeft: {
-    flex: 1,
-    marginRight: spacing.xs,
-  },
-  screenTitle: {
-    fontFamily: fontFamilies.sans,
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.dark.textPrimary,
-  },
-  screenSubtitle: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontSize: 12,
-    marginTop: 2,
-  },
-
-  // 2. Hero Card
-  heroCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-    backgroundColor: colors.dark.surface,
-  },
-  heroCardDue: {
-    borderColor: colors.primary,
-    borderWidth: 1.5,
-    backgroundColor: 'rgba(13, 148, 136, 0.08)',
-  },
-  heroTopRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.xs,
+    marginBottom: 16,
+    marginTop: 4,
   },
-  heroLabel: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textMuted,
-    fontSize: 11,
+  backButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backArrow: {
+    fontSize: 28,
+    lineHeight: 30,
+    fontWeight: '300',
+  },
+  headerTitle: {
+    fontSize: 18,
     fontWeight: '700',
-    letterSpacing: 0.6,
   },
-  heroAmountRow: {
+  headerRightPlaceholder: {
+    width: 36,
+  },
+  heroCard: {
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
+  },
+  heroRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: 2,
-    gap: 4,
+    alignItems: 'center',
+  },
+  heroIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  heroIconText: {
+    fontSize: 22,
+  },
+  heroTextCol: {
+    flex: 1,
+  },
+  heroSubLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 2,
   },
   heroAmount: {
-    fontFamily: fontFamilies.sans,
-    fontVariant: ['tabular-nums'],
-    color: colors.dark.textPrimary,
-    fontSize: 28,
-    lineHeight: 32,
+    fontSize: 26,
     fontWeight: '800',
+    letterSpacing: -0.5,
   },
-  heroCurrency: {
-    fontFamily: fontFamilies.sans,
-    color: colors.primaryLight,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  heroDescription: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
-    marginBottom: spacing.sm,
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  chip: {
-    backgroundColor: colors.dark.surfaceElevated,
-    borderRadius: radii.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: colors.dark.surfaceBorder,
-  },
-  chipText: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-
-  // 3. Settled State Card
-  settledCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-    borderColor: colors.status.healthy,
-    borderWidth: 1,
-    backgroundColor: 'rgba(16, 185, 129, 0.06)',
-  },
-  settledHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  settledIcon: {
-    fontSize: 24,
-  },
-  settledTextCol: {
-    flex: 1,
-  },
-  settledTitle: {
-    fontFamily: fontFamilies.sans,
-    color: colors.status.healthy,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  settledSub: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
+  heroBenefit: {
     fontSize: 12,
-    lineHeight: 17,
-    marginTop: 2,
+    marginTop: 3,
   },
-  settledActionsRow: {
-    flexDirection: 'row',
-    gap: spacing.xs,
+  sectionHeader: {
+    marginBottom: 8,
+    paddingHorizontal: 2,
   },
-
-  // 4. Selection Card
-  selectionCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-  },
-  sectionHeaderLabel: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textMuted,
-    fontSize: 11,
+  sectionTitle: {
+    fontSize: 14,
     fontWeight: '700',
-    letterSpacing: 0.6,
-    marginBottom: spacing.sm,
   },
-  channelList: {
-    gap: spacing.xs,
+  channelCard: {
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 2,
+    marginBottom: 16,
   },
-  channelItem: {
+  channelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.dark.surfaceElevated,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.dark.surfaceBorder,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 12,
-    minHeight: 56,
-  },
-  channelItemSelected: {
-    borderColor: colors.primaryLight,
-    backgroundColor: '#0F2622',
+    paddingVertical: 13,
   },
   channelLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    marginRight: spacing.xs,
+    gap: 12,
   },
   channelIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.dark.surface,
-    borderWidth: 1,
-    borderColor: colors.dark.surfaceBorder,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.sm,
-  },
-  channelIconBoxSelected: {
-    borderColor: colors.primaryLight,
   },
   channelIcon: {
-    fontSize: 18,
+    fontSize: 20,
   },
-  channelMeta: {
-    flex: 1,
-  },
-  channelNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  channelName: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textPrimary,
+  channelLabel: {
     fontSize: 15,
     fontWeight: '700',
   },
-  channelNameSelected: {
-    color: colors.primaryLight,
-  },
-  channelAmharic: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textMuted,
+  channelSub: {
     fontSize: 12,
+    marginTop: 1,
   },
-  channelDesc: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontSize: 11,
-    marginTop: 2,
-  },
-  channelRight: {
-    paddingLeft: spacing.xs,
-  },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  radioOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
-    borderColor: colors.dark.textMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioCircleSelected: {
-    borderColor: colors.primaryLight,
+  radioInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
   },
-  radioDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.primaryLight,
+  continueButton: {
+    marginBottom: 12,
   },
-  simNoticeCallout: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.25)',
-    padding: spacing.sm,
-    marginTop: spacing.sm,
-    gap: spacing.xs,
+  disclosure: {
+    marginBottom: 20,
   },
-  simNoticeIcon: {
-    fontSize: 14,
-    marginTop: 1,
-  },
-  simNoticeText: {
-    fontFamily: fontFamilies.sans,
-    color: colors.accentGoldLight,
-    fontSize: 11,
-    lineHeight: 15,
-    flex: 1,
-  },
-
-  // 5. History Card
-  historyCard: {
-    marginBottom: spacing.sm,
-    padding: spacing.md,
+  historySection: {
+    marginBottom: 16,
   },
   historyHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 8,
+    paddingHorizontal: 2,
   },
   historyTitle: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textPrimary,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
   },
-  historySubtitle: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textMuted,
-    fontSize: 11,
-    marginTop: 1,
-  },
-  historyBadge: {
-    backgroundColor: colors.dark.surfaceElevated,
-    borderRadius: radii.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderWidth: 1,
-    borderColor: colors.dark.surfaceBorder,
-  },
-  historyBadgeText: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontSize: 11,
+  toggleHistoryText: {
+    fontSize: 13,
     fontWeight: '600',
   },
-  historyList: {
-    marginTop: spacing.xs,
+  historyCard: {
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 2,
   },
-  historyItemRow: {
+  historyItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  historyItemRowLast: {
-    borderBottomWidth: 0,
-    paddingBottom: 2,
+    justifyContent: 'space-between',
+    paddingVertical: 12,
   },
   historyItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    marginRight: spacing.xs,
+    gap: 12,
   },
-  historyItemIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.dark.surfaceElevated,
+  recentCheckBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.dark.surfaceBorder,
   },
-  historyItemIcon: {
-    fontSize: 15,
+  recentCheckMark: {
+    fontSize: 13,
+    fontWeight: '800',
   },
-  historyItemMeta: {
-    flex: 1,
-  },
-  historyItemChannel: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textPrimary,
+  historyChannel: {
     fontSize: 13,
     fontWeight: '700',
   },
-  historyItemDate: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textMuted,
+  historyDate: {
     fontSize: 11,
-    marginTop: 1,
-  },
-  historyItemRef: {
-    fontFamily: fontFamilies.mono,
-    color: colors.dark.textSecondary,
-    fontSize: 10,
     marginTop: 1,
   },
   historyItemRight: {
     alignItems: 'flex-end',
-    gap: 3,
   },
-  historyItemAmount: {
-    fontFamily: fontFamilies.sans,
-    fontVariant: ['tabular-nums'],
-    color: colors.dark.textPrimary,
-    fontSize: 13,
+  historyAmount: {
+    fontSize: 14,
     fontWeight: '700',
   },
-
-  // 6. Modals
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.md,
+    padding: 24,
   },
-  modalContent: {
+  modalBox: {
     width: '100%',
-    maxWidth: 420,
-    backgroundColor: colors.dark.surface,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.dark.surfaceBorder,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  modalAmharic: {
-    fontFamily: fontFamilies.sans,
-    color: colors.accentGold,
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 2,
+    borderRadius: 20,
+    padding: 22,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
   },
   modalTitle: {
-    fontFamily: fontFamilies.sans,
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '800',
-    color: colors.dark.textPrimary,
+    marginBottom: 6,
+    letterSpacing: -0.3,
   },
-  modalAmountBox: {
-    backgroundColor: colors.dark.surfaceElevated,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    alignItems: 'center',
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.primaryDark,
+  modalSub: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 16,
   },
-  modalAmountLabel: {
-    fontFamily: fontFamilies.sans,
-    color: colors.primaryLight,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-  },
-  modalAmountValue: {
-    fontFamily: fontFamilies.sans,
-    fontVariant: ['tabular-nums'],
-    fontSize: 30,
-    fontWeight: '800',
-    color: colors.dark.textPrimary,
-    marginVertical: 4,
-  },
-  modalAmountSub: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontSize: 11,
-  },
-  reviewTable: {
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    borderRadius: radii.md,
-    padding: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  reviewTableRow: {
+  reviewRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  reviewTableLabel: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textMuted,
-    fontSize: 12,
-  },
-  reviewTableValue: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textPrimary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  monoText: {
-    fontFamily: fontFamilies.mono,
-  },
-  reviewNoticeBox: {
-    backgroundColor: '#1C1608',
-    borderRadius: radii.sm,
-    padding: spacing.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-    marginBottom: spacing.md,
-  },
-  reviewNoticeText: {
-    fontFamily: fontFamilies.sans,
-    color: colors.accentGoldLight,
-    fontSize: 11,
-    lineHeight: 15,
-  },
-  modalActionsRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-
-  // Success Modal
-  successHeader: {
     alignItems: 'center',
-    marginBottom: spacing.md,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  successCelebrationIcon: {
-    fontSize: 40,
-    marginBottom: spacing.xs,
-  },
-  successAmharicTitle: {
-    fontFamily: fontFamilies.sans,
-    color: colors.status.healthy,
+  reviewLabel: {
     fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 2,
   },
-  successTitle: {
-    fontFamily: fontFamilies.sans,
-    fontSize: 20,
+  reviewValue: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  receiptIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  receiptCheckEmoji: {
+    fontSize: 28,
     fontWeight: '800',
-    color: colors.dark.textPrimary,
-    marginBottom: 6,
+    color: '#10B981',
   },
   receiptCard: {
-    backgroundColor: colors.dark.surfaceElevated,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.dark.surfaceBorder,
-    gap: 6,
+    padding: 14,
+    marginVertical: 16,
+    gap: 8,
   },
   receiptRow: {
     flexDirection: 'row',
@@ -1094,63 +681,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   receiptLabel: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textMuted,
     fontSize: 12,
   },
-  receiptAmount: {
-    fontFamily: fontFamilies.sans,
-    fontVariant: ['tabular-nums'],
-    color: colors.status.healthy,
-    fontSize: 17,
+  receiptValueHighlight: {
+    fontSize: 14,
     fontWeight: '800',
   },
   receiptValue: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textPrimary,
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
   },
-  issuedTicketCard: {
-    backgroundColor: '#0F261E',
-    borderRadius: radii.md,
-    padding: spacing.md,
-    alignItems: 'center',
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  issuedTicketHeading: {
-    fontFamily: fontFamilies.sans,
-    color: colors.primaryLight,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  issuedTicketNumber: {
-    fontFamily: fontFamilies.mono,
-    color: colors.accentGold,
-    fontSize: 18,
-    fontWeight: '800',
-    marginVertical: 4,
-  },
-  issuedTicketSub: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
+  receiptValueMono: {
     fontSize: 11,
-    textAlign: 'center',
-  },
-  successActions: {
-    alignItems: 'center',
-  },
-  dismissLink: {
-    paddingVertical: spacing.xs,
-    alignItems: 'center',
-  },
-  dismissLinkText: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'monospace',
   },
 });

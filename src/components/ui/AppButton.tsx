@@ -6,6 +6,7 @@
  * - Clear accessibility labels & roles
  * - Loading indicator state
  * - Color contrast compliant variants
+ * - Dynamic light/dark theme adaptation
  */
 
 import React from 'react';
@@ -17,7 +18,7 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { colors, radii, spacing, typography, layout, fontFamilies } from '@/src/theme/tokens';
+import { radii, spacing, typography, layout, fontFamilies, useTheme } from '@/src/theme/tokens';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'gold' | 'outline' | 'danger';
 
@@ -46,7 +47,62 @@ export function AppButton({
   accessibilityHint,
   fullWidth = true,
 }: AppButtonProps) {
+  const { theme, colors, isDark } = useTheme();
   const isInteractive = !disabled && !loading;
+
+  const dynamicVariantStyles: Record<ButtonVariant, ViewStyle> = {
+    primary: {
+      backgroundColor: colors.primary,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.35 : 0.2,
+      shadowRadius: 6,
+      elevation: 3,
+    },
+    secondary: {
+      backgroundColor: theme.surfaceElevated,
+      borderWidth: 1,
+      borderColor: theme.surfaceBorder,
+    },
+    gold: {
+      backgroundColor: colors.accentGold,
+      shadowColor: colors.accentGold,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 3,
+    },
+    outline: {
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderColor: theme.surfaceBorder,
+    },
+    danger: {
+      backgroundColor: colors.status.critical,
+    },
+  };
+
+  const dynamicVariantTextStyles: Record<ButtonVariant, TextStyle> = {
+    primary: {
+      color: '#FFFFFF',
+      fontWeight: typography.fontWeights.bold,
+    },
+    secondary: {
+      color: theme.textPrimary,
+    },
+    gold: {
+      color: '#0A0E17',
+      fontWeight: typography.fontWeights.bold,
+    },
+    outline: {
+      color: theme.textPrimary,
+      fontWeight: typography.fontWeights.semibold,
+    },
+    danger: {
+      color: '#FFFFFF',
+      fontWeight: typography.fontWeights.bold,
+    },
+  };
 
   return (
     <TouchableOpacity
@@ -60,7 +116,7 @@ export function AppButton({
       style={[
         styles.base,
         fullWidth && styles.fullWidth,
-        variantStyles[variant],
+        dynamicVariantStyles[variant],
         disabled && styles.disabled,
         style,
       ]}
@@ -68,14 +124,14 @@ export function AppButton({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'outline' ? colors.primaryLight : '#FFFFFF'}
+          color={variant === 'outline' ? colors.primary : '#FFFFFF'}
         />
       ) : (
         <Text
           style={[
             styles.baseText,
-            variantTextStyles[variant],
-            disabled && styles.disabledText,
+            dynamicVariantTextStyles[variant],
+            disabled && { color: theme.textMuted },
             textStyle,
           ]}
         >
@@ -88,11 +144,11 @@ export function AppButton({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: layout.minTouchTarget,
+    minHeight: 50,
     minWidth: layout.minTouchTarget,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
-    borderRadius: radii.md,
+    borderRadius: radii.full,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -110,62 +166,4 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.45,
   },
-  disabledText: {
-    color: colors.dark.textMuted,
-  },
 });
-
-const variantStyles: Record<ButtonVariant, ViewStyle> = {
-  primary: {
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  secondary: {
-    backgroundColor: colors.dark.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.dark.surfaceBorder,
-  },
-  gold: {
-    backgroundColor: colors.accentGold,
-    shadowColor: colors.accentGold,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  outline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: colors.primaryLight,
-  },
-  danger: {
-    backgroundColor: colors.status.critical,
-  },
-};
-
-const variantTextStyles: Record<ButtonVariant, TextStyle> = {
-  primary: {
-    color: '#FFFFFF',
-    fontWeight: typography.fontWeights.bold,
-  },
-  secondary: {
-    color: colors.dark.textPrimary,
-  },
-  gold: {
-    color: '#0A0E17',
-    fontWeight: typography.fontWeights.bold,
-  },
-  outline: {
-    color: colors.primaryLight,
-    fontWeight: typography.fontWeights.semibold,
-  },
-  danger: {
-    color: '#FFFFFF',
-    fontWeight: typography.fontWeights.bold,
-  },
-};
-

@@ -6,4 +6,8 @@ export * from './DisclaimerNotice';
 export * from './StatusPill';
 export * from './PersonaSelector';
 export * from './MetricTile';
-
+export * from './NotificationsModal';
+export * from './ProfileModal';
+export * from './MerkatoLogo';
+export * from './BrandInfographicModal';
+export * from './MerkatoBrandModal';

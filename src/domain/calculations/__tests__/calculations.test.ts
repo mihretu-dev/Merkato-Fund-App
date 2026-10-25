@@ -26,6 +26,7 @@ import {
   calculateBufferStatus,
   calculateBufferReplenishment,
   calculateRealityCheck,
+  calculateFullPayoffDetails,
 } from '../repayment';
 import {
   simulateDemoDraw,
@@ -557,3 +558,155 @@ describe('7. Day 6: Six-Month Escrow & Cumulative Interest Checkpoints', () => {
     assert.equal(d5.daysRemaining, 10);
   });
 });
+
+describe('8. Phase 6.2 & 6.3: Repayment Timeline Consistency & Boundary Audit', () => {
+  it('governing rule: daily repayments start on Day 1 during escrow lock period (not after Day 180)', () => {
+    const detailsA = calculateFullPayoffDetails('500_plus_50');
+    const detailsB = calculateFullPayoffDetails('550_bundle');
+
+    // Both scenarios model repayment beginning immediately on Day 1
+    assert.equal(detailsA.repaymentStartDay, 1);
+    assert.equal(detailsB.repaymentStartDay, 1);
+    assert.equal(detailsA.escrowDurationDays, 180);
+    assert.equal(detailsB.escrowDurationDays, 180);
+
+    // During the 180-day escrow lock:
+    // Scenario A repays 180 * 500 = 90,000 ETB principal
+    assert.equal(detailsA.principalRepaidDuringEscrowETB, 90000);
+    // Scenario A pays 180 * 50 = 9,000 ETB admin fees
+    assert.equal(detailsA.adminFeesPaidDuringEscrowETB, 9000);
+
+    // Scenario B repays 180 * 550 = 99,000 ETB principal
+    assert.equal(detailsB.principalRepaidDuringEscrowETB, 99000);
+    assert.equal(detailsB.adminFeesPaidDuringEscrowETB, 0);
+  });
+
+  it('verifies calculation boundaries: Day 0, Day 1, Day 180, final full-installment day, and final adjusted-payment day', () => {
+    const configA = {
+      prizeAmountETB: 1000000,
+      dailyPrincipalRepaymentETB: 500,
+      dailyAdminFeeETB: 50,
+    };
+    const configB = {
+      prizeAmountETB: 1000000,
+      dailyPrincipalRepaymentETB: 550,
+      dailyAdminFeeETB: 0,
+    };
+
+    // 1. Boundary: Day 0 (Initial Lock / Deposit)
+    const d0A = calculateRepaymentScenario(0, configA);
+    const d0B = calculateRepaymentScenario(0, configB);
+    assert.equal(d0A.principalRepaidETB, 0);
+    assert.equal(d0A.remainingPrincipalETB, 1000000);
+    assert.equal(d0A.adminFeesRepaidETB, 0);
+    assert.equal(d0B.principalRepaidETB, 0);
+    assert.equal(d0B.remainingPrincipalETB, 1000000);
+
+    // 2. Boundary: Day 1 (First active payment)
+    const d1A = calculateRepaymentScenario(1, configA);
+    const d1B = calculateRepaymentScenario(1, configB);
+    assert.equal(d1A.principalRepaidETB, 500);
+    assert.equal(d1A.remainingPrincipalETB, 999500);
+    assert.equal(d1A.adminFeesRepaidETB, 50);
+    assert.equal(d1B.principalRepaidETB, 550);
+    assert.equal(d1B.remainingPrincipalETB, 999450);
+
+    // 3. Boundary: Day 180 (Escrow Unlock)
+    const d180A = calculateRepaymentScenario(180, configA);
+    const d180B = calculateRepaymentScenario(180, configB);
+    assert.equal(d180A.principalRepaidETB, 90000);
+    assert.equal(d180A.remainingPrincipalETB, 910000);
+    assert.equal(d180A.adminFeesRepaidETB, 9000);
+    assert.equal(d180B.principalRepaidETB, 99000);
+    assert.equal(d180B.remainingPrincipalETB, 901000);
+
+    // 4. Boundary: Final full-installment day
+    // Scenario A: Day 2,000 is both final full-installment day and final payoff day
+    const d2000A = calculateRepaymentScenario(2000, configA);
+    assert.equal(d2000A.principalRepaidETB, 1000000);
+    assert.equal(d2000A.remainingPrincipalETB, 0);
+    assert.equal(d2000A.adminFeesRepaidETB, 100000);
+
+    // Scenario B: Day 1,818 is final full-installment day
+    const d1818B = calculateRepaymentScenario(1818, configB);
+    assert.equal(d1818B.principalRepaidETB, 999900);
+    assert.equal(d1818B.remainingPrincipalETB, 100);
+
+    // 5. Boundary: Final adjusted-payment day
+    // Scenario B: Day 1,819 extinguishes the final 100 ETB
+    const detailsB = calculateFullPayoffDetails('550_bundle');
+    assert.equal(detailsB.finalAdjustedPaymentDay, 1819);
+    assert.equal(detailsB.finalInstallmentPrincipalETB, 100);
+    assert.equal(detailsB.isFinalPaymentAdjusted, true);
+  });
+
+  it('clearly distinguishes full-installment count, total repayment days, final adjusted day, and post-escrow days', () => {
+    const detailsA = calculateFullPayoffDetails('500_plus_50');
+    const detailsB = calculateFullPayoffDetails('550_bundle');
+
+    // Scenario A:
+    // Full-installment count: 2,000 days
+    assert.equal(detailsA.fullInstallmentDays, 2000);
+    assert.equal(detailsA.wholePaymentDays, 2000);
+    // Total repayment days: 2,000 days
+    assert.equal(detailsA.totalPayoffDays, 2000);
+    // Final adjusted day: Day 2,000 (unadjusted, full standard payment)
+    assert.equal(detailsA.finalAdjustedPaymentDay, 2000);
+    assert.equal(detailsA.isFinalPaymentAdjusted, false);
+    assert.equal(detailsA.finalInstallmentPrincipalETB, 500);
+    assert.equal(detailsA.finalInstallmentAdminFeeETB, 50);
+    // Remaining days after escrow unlock: 1,820 days
+    assert.equal(detailsA.postEscrowPayoffDays, 1820);
+    assert.equal(detailsA.totalPayoffDays - 180, detailsA.postEscrowPayoffDays);
+
+    // Scenario B:
+    // Full-installment count: 1,818 days (550 ETB each)
+    assert.equal(detailsB.fullInstallmentDays, 1818);
+    assert.equal(detailsB.wholePaymentDays, 1818);
+    // Total repayment days: 1,819 days (ceiling)
+    assert.equal(detailsB.totalPayoffDays, 1819);
+    // Final adjusted day: Day 1,819 (adjusted, 100 ETB principal)
+    assert.equal(detailsB.finalAdjustedPaymentDay, 1819);
+    assert.equal(detailsB.isFinalPaymentAdjusted, true);
+    assert.equal(detailsB.finalInstallmentPrincipalETB, 100);
+    assert.equal(detailsB.finalInstallmentAdminFeeETB, 0);
+    assert.equal(detailsB.finalInstallmentTotalETB, 100);
+    // Remaining days after escrow unlock: 1,639 days
+    assert.equal(detailsB.postEscrowPayoffDays, 1639);
+    assert.equal(detailsB.totalPayoffDays - 180, detailsB.postEscrowPayoffDays);
+  });
+
+  it('keeps 50 ETB admin fee strictly separate from principal and calculates lifetime fee totals as model assumption', () => {
+    const detailsA = calculateFullPayoffDetails('500_plus_50');
+    const detailsB = calculateFullPayoffDetails('550_bundle');
+
+    // Scenario A: 2,000 days * 50 ETB/day = 100,000 ETB total admin fees
+    assert.equal(detailsA.totalAdminFeesETB, 100000);
+    // Total lifetime cash outflow: 1,000,000 principal + 100,000 fee = 1,100,000 ETB
+    assert.equal(detailsA.totalLifetimeOutflowETB, 1100000);
+
+    // Scenario B: Bundled 550 ETB flat has 0 separate admin fee
+    assert.equal(detailsB.totalAdminFeesETB, 0);
+    assert.equal(detailsB.totalLifetimeOutflowETB, 1000000);
+
+    // Verification: admin fees do not reduce principal
+    assert.equal(detailsA.totalPrincipalETB, 1000000);
+  });
+
+  it('supports custom principal and escrow durations and validates inputs', () => {
+    const custom = calculateFullPayoffDetails('500_plus_50', { prizeAmountETB: 500000 }, 90);
+    assert.equal(custom.totalPrincipalETB, 500000);
+    assert.equal(custom.escrowDurationDays, 90);
+    assert.equal(custom.principalRepaidDuringEscrowETB, 45000); // 90 * 500
+    assert.equal(custom.remainingPrincipalAtDay180ETB, 455000); // 500,000 - 45,000
+    assert.equal(custom.totalPayoffDays, 1000); // 500,000 / 500
+    assert.equal(custom.fullInstallmentDays, 1000);
+    assert.equal(custom.postEscrowPayoffDays, 910); // 1,000 - 90
+    assert.equal(custom.totalAdminFeesETB, 50000); // 1,000 * 50
+
+    // Input validations
+    assert.throws(() => calculateFullPayoffDetails('500_plus_50', { prizeAmountETB: -100 }), RangeError);
+    assert.throws(() => calculateFullPayoffDetails('500_plus_50', { prizeAmountETB: 1000000 }, -10), RangeError);
+  });
+});
+

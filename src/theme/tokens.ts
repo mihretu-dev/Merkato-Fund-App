@@ -13,12 +13,12 @@
 import { Platform } from 'react-native';
 
 export const colors = {
-  // Brand identity
-  primary: '#0D9488', // Emerald teal
-  primaryDark: '#0F766E',
-  primaryLight: '#2DD4BF',
-  primaryVibrant: '#14B8A6',
-  primaryMuted: '#134E4A',
+  // Brand identity (from visual reference: #10B981)
+  primary: '#10B981', // Forest / Emerald green
+  primaryDark: '#065F46',
+  primaryLight: '#34D399',
+  primaryVibrant: '#10B981',
+  primaryMuted: '#064E3B',
 
   // Heritage & Accent Gold
   accentGold: '#F59E0B',
@@ -28,29 +28,39 @@ export const colors = {
   // Ethiopian Payment Brand Reference Colors (Simulated)
   telebirr: '#0072CE',
   cbeBirr: '#8A208A',
+  awashBirr: '#B45309',
 
-  // Neutral Scales (Dark Theme First for Fintech Premium Feel)
+  // Neutral Scales (Dark Theme from visual reference: #0B1220 / #162032)
   dark: {
-    background: '#0A0E17',
-    surface: '#121826',
-    surfaceElevated: '#1A2234',
+    primary: '#10B981',
+    primaryDark: '#065F46',
+    primaryLight: '#34D399',
+    background: '#0B1220',
+    surface: '#162032',
+    surfaceElevated: '#1E293B',
     surfaceBorder: 'rgba(255, 255, 255, 0.08)',
-    surfaceBorderFocused: '#0D9488',
+    surfaceBorderFocused: '#10B981',
     textPrimary: '#F8FAFC',
     textSecondary: '#94A3B8',
     textMuted: '#64748B',
-    divider: 'rgba(255, 255, 255, 0.06)',
+    divider: 'rgba(255, 255, 255, 0.08)',
+    card: '#162032',
   },
+  // Neutral Scales (Light Theme from visual reference: #F8FAFC / #FFFFFF)
   light: {
+    primary: '#10B981',
+    primaryDark: '#065F46',
+    primaryLight: '#34D399',
     background: '#F8FAFC',
     surface: '#FFFFFF',
     surfaceElevated: '#F1F5F9',
     surfaceBorder: '#E2E8F0',
-    surfaceBorderFocused: '#0D9488',
+    surfaceBorderFocused: '#10B981',
     textPrimary: '#0F172A',
-    textSecondary: '#475569',
+    textSecondary: '#64748B',
     textMuted: '#94A3B8',
     divider: '#E2E8F0',
+    card: '#FFFFFF',
   },
 
   // Semantic Status
@@ -189,4 +199,6 @@ export const layout = {
   cardPadding: 16,
   screenPadding: 16,
 } as const;
+
+export { useTheme } from './useTheme';
 

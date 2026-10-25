@@ -257,6 +257,31 @@ describe('Zustand Stores Test Suite', () => {
       assert.equal(useDrawStore.getState().activeDraw?.winningTicketNumber, res.winningTicket.ticketNumber);
       assert.equal(useDrawStore.getState().activeDraw?.winnerUserId, user.id);
     });
+
+    it('addUserTicket is idempotent and prevents duplicate ticket entries', () => {
+      const sampleTicket = {
+        id: 'test-ticket-duplicate-001',
+        drawId: 'draw-20261017',
+        userId: 'user-dawit-001',
+        ticketNumber: 'MF-20261017-TEST',
+        issuedAt: '2026-10-17T12:00:00+03:00',
+        isWinningTicket: false,
+      };
+
+      // Add once
+      useDrawStore.getState().addUserTicket(sampleTicket);
+      const userCountOnce = useDrawStore.getState().userTickets.filter((t) => t.id === sampleTicket.id).length;
+      const eligibleCountOnce = useDrawStore.getState().eligibleDrawTickets.filter((t) => t.id === sampleTicket.id).length;
+      assert.equal(userCountOnce, 1);
+      assert.equal(eligibleCountOnce, 1);
+
+      // Add second time (idempotency check)
+      useDrawStore.getState().addUserTicket(sampleTicket);
+      const userCountTwice = useDrawStore.getState().userTickets.filter((t) => t.id === sampleTicket.id).length;
+      const eligibleCountTwice = useDrawStore.getState().eligibleDrawTickets.filter((t) => t.id === sampleTicket.id).length;
+      assert.equal(userCountTwice, 1, 'Duplicate ticket must not be added to userTickets');
+      assert.equal(eligibleCountTwice, 1, 'Duplicate ticket must not be added to eligibleDrawTickets');
+    });
   });
 
   describe('4. useWinnerStore', () => {

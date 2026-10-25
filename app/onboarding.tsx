@@ -1,264 +1,383 @@
 /**
- * Merkato Fund — Onboarding Carousel Screen
+ * Merkato Fund — Onboarding Screen
  *
- * 3-slide educational walkthrough introducing:
- * 1. A Different Approach to Equb (Equb + Draw + Bank Escrow + Capital Markets)
- * 2. Daily 50 ETB Contribution Model
- * 3. 1,000,000 ETB Prize, 6-Month Blocked Escrow & Post-Win Repayments
+ * 4-Slide interactive swipeable onboarding experience:
+ * - Slide 1: Community Savings (The 4-Model Hybrid Financial Engine)
+ * - Slide 2: Daily 50 ETB Equb (50 Birr: Two Worlds & micro-contributions)
+ * - Slide 3: Transparent Algorithmic Draws (4-Step Process & cryptographic verification)
+ * - Slide 4: 1,000,000 ETB Escrow Vault (1M ETB balance, ACT/365 yield & Winner's Buffer)
  *
- * Emphasizes that this is a simulated technology prototype evaluating marketing proposals,
- * with no real financial transactions, guaranteed payouts, or banking commitments.
+ * Features:
+ * - High-resolution authentic Merkato Fund infographics
+ * - Official Merkato Fund emblem logo
+ * - Horizontal swipeable carousel with pagingEnabled
+ * - Interactive pagination dots (tap to jump)
+ * - Dynamic CTA ("Next →" vs "Get Started →")
+ * - Top "Skip" ("ዝለል") button with guaranteed unclipped layout
+ * - Instant language toggle (English / አማርኛ)
+ * - Full Dark & Light theme compliance
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   View,
   Text,
-  ScrollView,
+  Image,
   TouchableOpacity,
-  Dimensions,
-  Platform,
+  ScrollView,
+  useWindowDimensions,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/tokens';
-import { Card, AppButton, DemoBadge, DisclaimerNotice, StatusPill } from '@/src/components/ui';
+
+import { useTheme } from '@/src/theme/useTheme';
+import { AppButton, MerkatoLogo, MerkatoBrandModal } from '@/src/components/ui';
 import { useUserStore } from '@/src/stores/useUserStore';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-interface OnboardingSlide {
-  id: number;
-  badge: string;
-  amharicTitle: string;
-  title: string;
-  subtitle: string;
-  bullets: Array<{
-    icon: string;
-    label: string;
-    description: string;
-    isProposedClaim?: boolean;
-  }>;
-  disclaimerText: string;
-}
-
-const ONBOARDING_SLIDES: OnboardingSlide[] = [
-  {
-    id: 1,
-    badge: 'PILLAR 1 & 2 • CONCEPT',
-    amharicTitle: 'አዲስ የዕቁብ አሠራር ጽንሰ-ሐሳብ',
-    title: 'A Different Approach to Equb',
-    subtitle: 'The Merkato Fund concept proposes pairing traditional Ethiopian rotating savings with algorithmic draws and institutional bank custody.',
-    bullets: [
-      {
-        icon: '🤝',
-        label: 'Social Savings (ዕቁብ) Foundation',
-        description: 'Inspired by traditional community Equb, pool participants contribute small daily amounts into a shared pool.',
-      },
-      {
-        icon: '⚡',
-        label: '“Get First, Then Pay” Marketing Hook',
-        description: 'Instead of waiting months for an Equb round, the marketing proposal uses daily algorithmic draws to deliver capital up front.',
-        isProposedClaim: true,
-      },
-      {
-        icon: '🏛️',
-        label: '4 Structural Hybrid Pillars',
-        description: 'Blends community Equb trust, algorithmic draw speed, 6-month bank escrow custody, and treasury capital yield.',
-      },
-    ],
-    disclaimerText: 'Marketing Hypothesis: The claims of combining zero-debt lottery capital with bank security are evaluated here as a software simulation, not a certified financial vehicle.',
-  },
-  {
-    id: 2,
-    badge: 'PILLAR 3 • DAILY PARTICIPATION',
-    amharicTitle: 'የ50 ብር የቀን መዋጮ ሞዴል',
-    title: 'Daily 50 ETB Micro-Contribution',
-    subtitle: 'Active participants contribute a proposed 50 ETB daily payment — roughly equivalent to an everyday coffee in Merkato.',
-    bullets: [
-      {
-        icon: '☕',
-        label: '50 ETB Daily Contribution',
-        description: 'A manageable micro-contribution that builds the shared pool across an assumed 20,000+ member participant base.',
-      },
-      {
-        icon: '🎟️',
-        label: 'Daily Algorithmic Draw Ticket',
-        description: 'Each confirmed 50 ETB daily payment issues one algorithmic entry ticket for that evening’s 20:00:00 EAT draw.',
-      },
-      {
-        icon: '🔥',
-        label: 'Gamified Payment Streak',
-        description: 'Maintain consecutive daily contribution streaks to retain eligibility in subsequent daily draw cycles.',
-      },
-    ],
-    disclaimerText: 'Simulated Only: Payment channels (Telebirr & CBE Birr) within this app are local demonstration mockups. No real money is collected or transferred.',
-  },
-  {
-    id: 3,
-    badge: 'PILLAR 4 • WINNER ESCROW & REPAYMENT',
-    amharicTitle: 'ዕጣና የአሸናፊው ሒሳብ አያያዝ',
-    title: 'Draw, Escrow & Repayment Process',
-    subtitle: 'If selected, the proposed 1,000,000 ETB payout is held in a 6-month blocked escrow before full capital release.',
-    bullets: [
-      {
-        icon: '🏦',
-        label: '6-Month Blocked Bank Escrow',
-        description: 'The 1,000,000 ETB prize is locked in Commercial Bank of Ethiopia (CBE) custody for 180 days at a claimed 22% p.a. interest.',
-        isProposedClaim: true,
-      },
-      {
-        icon: '📈',
-        label: 'Daily Interest vs Repayment',
-        description: 'Deposit accrues ~602.74 ETB/day (ACT/365). The winner owes 500 ETB principal + 50 ETB fee/day, yielding a temporary +52.74 ETB/day surplus in escrow.',
-      },
-      {
-        icon: '🛡️',
-        label: '7,500 ETB Operational Buffer',
-        description: 'Winners maintain a dedicated buffer replenished every 15 days to guarantee daily debt service obligations.',
-      },
-    ],
-    disclaimerText: 'Reality Check: The positive daily cash flow only applies during the 180-day lock period. Post-lock, ~910,000 ETB principal debt remains to be amortized over ~5.4 years without interest offset.',
-  },
-];
+import { useTranslation } from '@/src/i18n/useTranslation';
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const insets = useSafeAreaInsets();
+  const { theme, isDark, setThemePreference } = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
   const setHasCompletedOnboarding = useUserStore((s) => s.setHasCompletedOnboarding);
+  const { t, language, setLanguage } = useTranslation();
 
-  const activeSlide = ONBOARDING_SLIDES[currentSlideIndex];
-  const isLastSlide = currentSlideIndex === ONBOARDING_SLIDES.length - 1;
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [showBrandModal, setShowBrandModal] = useState(false);
+  const scrollViewRef = useRef<React.ElementRef<typeof ScrollView>>(null);
 
-  const handleNext = () => {
-    if (isLastSlide) {
-      handleComplete();
-    } else {
-      setCurrentSlideIndex((prev) => prev + 1);
-    }
-  };
-
-  const handleBack = () => {
-    if (currentSlideIndex > 0) {
-      setCurrentSlideIndex((prev) => prev - 1);
-    }
-  };
-
-  const handleComplete = () => {
+  const handleGetStarted = () => {
     setHasCompletedOnboarding(true);
     router.replace('/persona-select');
   };
 
-  const insets = useSafeAreaInsets();
+  const handleNext = () => {
+    if (activeIndex < 3) {
+      const nextIdx = activeIndex + 1;
+      scrollViewRef.current?.scrollTo({ x: nextIdx * windowWidth, animated: true });
+      setActiveIndex(nextIdx);
+    } else {
+      handleGetStarted();
+    }
+  };
+
+  const handleDotPress = (index: number) => {
+    setActiveIndex(index);
+    scrollViewRef.current?.scrollTo({ x: index * windowWidth, animated: true });
+  };
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / windowWidth);
+    if (index >= 0 && index <= 3 && index !== activeIndex) {
+      setActiveIndex(index);
+    }
+  };
+
+  const slideImages = [
+    require('@/assets/images/onboarding/slide_0_hybrid.png'),
+    require('@/assets/images/onboarding/slide_1_habit.png'),
+    require('@/assets/images/onboarding/slide_2_draw.png'),
+    require('@/assets/images/onboarding/slide_3_escrow.png'),
+  ];
 
   return (
-    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
-      <View style={styles.header}>
-        {/* Step Indicator */}
-        <View style={styles.stepIndicator}>
-          {ONBOARDING_SLIDES.map((slide, idx) => (
-            <View
-              key={slide.id}
-              style={[
-                styles.stepDot,
-                idx === currentSlideIndex && styles.stepDotActive,
-                idx < currentSlideIndex && styles.stepDotCompleted,
-              ]}
-            />
-          ))}
-          <Text style={styles.stepText}>
-            Step {currentSlideIndex + 1} of {ONBOARDING_SLIDES.length}
-          </Text>
+    <View
+      style={[
+        styles.screen,
+        {
+          backgroundColor: theme.background,
+          paddingTop: Math.max(insets.top, 14),
+          paddingBottom: Math.max(insets.bottom, 18),
+        },
+      ]}>
+      {/* 1. Header Row: Official Brand Emblem Logo, Theme Toggle, Lang Switcher & Skip Button */}
+      <View style={styles.topHeaderRow}>
+        <View style={styles.brandRowLeft}>
+          <MerkatoLogo
+            size={38}
+            rounded={true}
+            showBorder={true}
+            onPress={() => setShowBrandModal(true)}
+          />
+          <View style={styles.brandTextContainer}>
+            <Text style={[styles.brandTitle, { color: theme.textPrimary }]} numberOfLines={1}>
+              {t.common.brandName}
+            </Text>
+            <Text style={[styles.brandTagline, { color: theme.textSecondary }]} numberOfLines={1}>
+              {t.common.brandTagline}
+            </Text>
+          </View>
         </View>
 
-        {/* Skip Action */}
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Skip onboarding and choose persona"
-          onPress={handleComplete}
-          style={styles.skipButton}>
-          <Text style={styles.skipText}>Skip to Demo →</Text>
-        </TouchableOpacity>
+        <View style={styles.topHeaderRight}>
+          {/* Quick Tiny Dark/Light Mode Selector */}
+          <TouchableOpacity
+            style={[
+              styles.themeMiniPill,
+              {
+                backgroundColor: isDark ? '#1E293B' : '#E2E8F0',
+                borderColor: theme.surfaceBorder,
+              },
+            ]}
+            onPress={() => setThemePreference(isDark ? 'light' : 'dark')}
+            accessibilityRole="button"
+            accessibilityLabel={`Switch to ${isDark ? 'light' : 'dark'} mode`}>
+            <Text style={styles.themeMiniIcon}>{isDark ? '☀️' : '🌙'}</Text>
+          </TouchableOpacity>
+
+          {/* Quick Language Toggle Pill */}
+          <TouchableOpacity
+            style={[
+              styles.langPill,
+              {
+                backgroundColor: isDark ? '#1E293B' : '#E2E8F0',
+                borderColor: theme.surfaceBorder,
+              },
+            ]}
+            onPress={() => setLanguage(language === 'en' ? 'am' : 'en')}
+            accessibilityRole="button"
+            accessibilityLabel="Switch language">
+            <Text style={[styles.langPillText, { color: theme.textPrimary }]}>
+              {language === 'en' ? 'አማርኛ 🇪🇹' : 'English 🇬🇧'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Skip Button - Always displays full text with unconstrained width */}
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={handleGetStarted}
+            accessibilityRole="button"
+            accessibilityLabel={language === 'am' ? 'ዝለል' : 'Skip onboarding'}>
+            <Text style={[styles.skipText, { color: theme.textMuted }]}>
+              {language === 'am' ? 'ዝለል' : t.common.skip}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
+      {/* 2. Swipeable 4-Page Carousel */}
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
-        {/* Main Slide Card Container */}
-        <View style={styles.contentWrapper}>
-          {/* Top Badges */}
-          <View style={styles.badgeRow}>
-            <StatusPill status="info" label={activeSlide.badge} size="small" />
-            <DemoBadge label="DEMO PROTOTYPE" />
-          </View>
-
-          {/* Titles */}
-          <Text style={styles.amharicTitle}>{activeSlide.amharicTitle}</Text>
-          <Text style={styles.slideTitle}>{activeSlide.title}</Text>
-          <Text style={styles.slideSubtitle}>{activeSlide.subtitle}</Text>
-
-          {/* Interactive Concept Card */}
-          <Card style={styles.conceptCard} variant="elevated">
-            {activeSlide.bullets.map((b, idx) => (
-              <View
-                key={idx}
-                style={[
-                  styles.bulletItem,
-                  idx < activeSlide.bullets.length - 1 && styles.bulletItemBorder,
-                ]}>
-                <View style={styles.iconCircle}>
-                  <Text style={styles.iconText}>{b.icon}</Text>
-                </View>
-                <View style={styles.bulletContent}>
-                  <View style={styles.bulletHeader}>
-                    <Text style={styles.bulletLabel}>{b.label}</Text>
-                    {b.isProposedClaim && (
-                      <StatusPill status="caution" label="MARKETING CLAIM" size="small" />
-                    )}
-                  </View>
-                  <Text style={styles.bulletDesc}>{b.description}</Text>
-                </View>
-              </View>
-            ))}
-          </Card>
-
-          {/* Slide Critical Context Callout */}
-          <Card style={styles.disclaimerCard} variant="surface">
-            <View style={styles.disclaimerHeader}>
-              <Text style={styles.disclaimerIcon}>⚖️</Text>
-              <Text style={styles.disclaimerTitle}>Model Integrity Note</Text>
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        style={styles.carouselScrollView}
+        contentContainerStyle={styles.carouselContentContainer}>
+        {/* Slide 0: Community Savings & Hybrid Ecosystem */}
+        <View style={[styles.slidePage, { width: windowWidth }]}>
+          <View style={styles.heroIllustrationContainer}>
+            <View
+              style={[
+                styles.illustrationCard,
+                {
+                  backgroundColor: isDark ? '#111C28' : '#F1F5F9',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                },
+              ]}>
+              <Image
+                source={slideImages[0]}
+                style={styles.illustrationImage}
+                resizeMode="cover"
+              />
             </View>
-            <Text style={styles.disclaimerBody}>{activeSlide.disclaimerText}</Text>
-          </Card>
+          </View>
+          <View style={styles.copyContainer}>
+            <View
+              style={[
+                styles.slideBadge,
+                { backgroundColor: isDark ? 'rgba(52, 211, 153, 0.15)' : 'rgba(5, 150, 105, 0.12)' },
+              ]}>
+              <Text style={[styles.slideBadgeText, { color: theme.primary }]}>
+                {t.onboarding.slides[0].badge}
+              </Text>
+            </View>
+            <Text style={[styles.headline, { color: theme.textPrimary }]}>
+              {t.onboarding.slides[0].title}
+            </Text>
+            <Text style={[styles.subheadline, { color: theme.textSecondary }]}>
+              {t.onboarding.slides[0].subtitle}
+            </Text>
+          </View>
+        </View>
 
-          {/* General Safety Notice */}
-          <DisclaimerNotice />
+        {/* Slide 1: Daily 50 ETB Equb Savings */}
+        <View style={[styles.slidePage, { width: windowWidth }]}>
+          <View style={styles.heroIllustrationContainer}>
+            <View
+              style={[
+                styles.illustrationCard,
+                {
+                  backgroundColor: isDark ? '#111C28' : '#F1F5F9',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                },
+              ]}>
+              <Image
+                source={slideImages[1]}
+                style={styles.illustrationImage}
+                resizeMode="cover"
+              />
+            </View>
+          </View>
+          <View style={styles.copyContainer}>
+            <View
+              style={[
+                styles.slideBadge,
+                { backgroundColor: isDark ? 'rgba(52, 211, 153, 0.15)' : 'rgba(5, 150, 105, 0.12)' },
+              ]}>
+              <Text style={[styles.slideBadgeText, { color: theme.primary }]}>
+                {t.onboarding.slides[1].badge}
+              </Text>
+            </View>
+            <Text style={[styles.headline, { color: theme.textPrimary }]}>
+              {t.onboarding.slides[1].title}
+            </Text>
+            <Text style={[styles.subheadline, { color: theme.textSecondary }]}>
+              {t.onboarding.slides[1].subtitle}
+            </Text>
+          </View>
+        </View>
+
+        {/* Slide 2: Transparent Algorithmic Draws */}
+        <View style={[styles.slidePage, { width: windowWidth }]}>
+          <View style={styles.heroIllustrationContainer}>
+            <View
+              style={[
+                styles.illustrationCard,
+                {
+                  backgroundColor: isDark ? '#111C28' : '#F1F5F9',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                },
+              ]}>
+              <Image
+                source={slideImages[2]}
+                style={styles.illustrationImage}
+                resizeMode="cover"
+              />
+            </View>
+          </View>
+          <View style={styles.copyContainer}>
+            <View
+              style={[
+                styles.slideBadge,
+                { backgroundColor: isDark ? 'rgba(52, 211, 153, 0.15)' : 'rgba(5, 150, 105, 0.12)' },
+              ]}>
+              <Text style={[styles.slideBadgeText, { color: theme.primary }]}>
+                {t.onboarding.slides[2].badge}
+              </Text>
+            </View>
+            <Text style={[styles.headline, { color: theme.textPrimary }]}>
+              {t.onboarding.slides[2].title}
+            </Text>
+            <Text style={[styles.subheadline, { color: theme.textSecondary }]}>
+              {t.onboarding.slides[2].subtitle}
+            </Text>
+          </View>
+        </View>
+
+        {/* Slide 3: 1,000,000 ETB Escrow Vault */}
+        <View style={[styles.slidePage, { width: windowWidth }]}>
+          <View style={styles.heroIllustrationContainer}>
+            <View
+              style={[
+                styles.illustrationCard,
+                {
+                  backgroundColor: isDark ? '#111C28' : '#F1F5F9',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                },
+              ]}>
+              <Image
+                source={slideImages[3]}
+                style={styles.illustrationImage}
+                resizeMode="cover"
+              />
+            </View>
+          </View>
+          <View style={styles.copyContainer}>
+            <View
+              style={[
+                styles.slideBadge,
+                { backgroundColor: isDark ? 'rgba(52, 211, 153, 0.15)' : 'rgba(5, 150, 105, 0.12)' },
+              ]}>
+              <Text style={[styles.slideBadgeText, { color: theme.primary }]}>
+                {t.onboarding.slides[3].badge}
+              </Text>
+            </View>
+            <Text style={[styles.headline, { color: theme.textPrimary }]}>
+              {t.onboarding.slides[3].title}
+            </Text>
+            <Text style={[styles.subheadline, { color: theme.textSecondary }]}>
+              {t.onboarding.slides[3].subtitle}
+            </Text>
+          </View>
         </View>
       </ScrollView>
 
-      {/* Persistent Bottom Action Bar */}
-      <View style={styles.footerBar}>
-        <View style={styles.footerInner}>
-          {currentSlideIndex > 0 ? (
-            <AppButton
-              title="← Back"
-              variant="outline"
-              onPress={handleBack}
-              style={styles.backButton}
-            />
-          ) : (
-            <View style={styles.backButtonPlaceholder} />
-          )}
-
-          <AppButton
-            title={isLastSlide ? 'Choose Demo Persona →' : 'Next Concept →'}
-            variant={isLastSlide ? 'gold' : 'primary'}
-            onPress={handleNext}
-            style={styles.primaryActionButton}
-          />
+      {/* 3. Bottom Controls: Interactive Pagination Dots & CTA Buttons */}
+      <View style={styles.actionsContainer}>
+        {/* Pagination Dots (4 dots, active dot is elongated pill, tappable) */}
+        <View style={styles.paginationDotsRow}>
+          {[0, 1, 2, 3].map((index) => {
+            const isActive = activeIndex === index;
+            return (
+              <TouchableOpacity
+                key={index}
+                onPress={() => handleDotPress(index)}
+                hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Go to onboarding page ${index + 1}`}>
+                <View
+                  style={[
+                    styles.dot,
+                    isActive && styles.dotActive,
+                    {
+                      backgroundColor: isActive
+                        ? theme.primary
+                        : isDark
+                        ? '#334155'
+                        : '#CBD5E1',
+                    },
+                  ]}
+                />
+              </TouchableOpacity>
+            );
+          })}
         </View>
+
+        {/* Primary CTA (Changes from "Next →" on slides 0..2 to "Get Started →" on slide 3) */}
+        <AppButton
+          title={activeIndex === 3 ? t.onboarding.getStarted : t.onboarding.nextSlide}
+          variant="primary"
+          onPress={handleNext}
+          style={styles.ctaButton}
+        />
+
+        {/* Sign In Alternative Link */}
+        <TouchableOpacity
+          style={styles.signInButton}
+          onPress={handleGetStarted}
+          accessibilityRole="button"
+          accessibilityLabel="Choose demo persona or sign in">
+          <Text style={[styles.signInText, { color: theme.textSecondary }]}>
+            {t.onboarding.alreadyAccount}{' '}
+            <Text style={[styles.signInHighlight, { color: theme.primary }]}>
+              {t.onboarding.signIn}
+            </Text>
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Merkato Brand Profile Modal */}
+      <MerkatoBrandModal
+        visible={showBrandModal}
+        onClose={() => setShowBrandModal(false)}
+      />
     </View>
   );
 }
@@ -266,198 +385,179 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.dark.background,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  header: {
+  topHeaderRow: {
+    width: '100%',
+    paddingHorizontal: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.surfaceBorder,
-    backgroundColor: colors.dark.surface,
+    marginBottom: 6,
   },
-  stepIndicator: {
+  brandRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    marginRight: 6,
+  },
+  brandTextContainer: {
+    flexShrink: 1,
+  },
+  brandTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  brandTagline: {
+    fontSize: 10,
+    fontWeight: '500',
+    letterSpacing: 0.1,
+  },
+  topHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flexShrink: 0,
   },
-  stepDot: {
-    width: 20,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.dark.surfaceBorder,
+  themeMiniPill: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  stepDotActive: {
-    backgroundColor: colors.primaryLight,
-    width: 28,
+  themeMiniIcon: {
+    fontSize: 14,
   },
-  stepDotCompleted: {
-    backgroundColor: colors.primaryDark,
+  langPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
   },
-  stepText: {
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textMuted,
-    fontSize: 12,
-    marginLeft: 6,
+  langPillText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   skipButton: {
     paddingVertical: 6,
-    paddingHorizontal: spacing.sm + 2,
-    borderRadius: radii.sm,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  skipText: {
-    fontFamily: fontFamilies.sans,
-    color: colors.accentGold,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  scrollContent: {
-    padding: spacing.lg,
-    paddingBottom: 100, // accommodate bottom action bar
-    alignItems: 'center',
-  },
-  contentWrapper: {
-    width: '100%',
-    maxWidth: 620, // clean layout on web / tablets
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  amharicTitle: {
-    fontFamily: fontFamilies.sans,
-    color: colors.accentGold,
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  slideTitle: {
-    fontFamily: fontFamilies.sans,
-    fontSize: 26,
-    lineHeight: 34,
-    fontWeight: '700',
-    color: colors.dark.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  slideSubtitle: {
-    fontFamily: fontFamilies.sans,
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.dark.textSecondary,
-    marginBottom: spacing.lg,
-  },
-  conceptCard: {
-    backgroundColor: colors.dark.surface,
-    borderColor: colors.dark.surfaceBorder,
-    marginBottom: spacing.md,
-    padding: spacing.md,
-  },
-  bulletItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: spacing.md,
-  },
-  bulletItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark.divider,
-  },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.dark.surfaceElevated,
+    paddingHorizontal: 8,
+    minWidth: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.dark.surfaceBorder,
   },
-  iconText: {
-    fontSize: 20,
-  },
-  bulletContent: {
-    flex: 1,
-  },
-  bulletHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  bulletLabel: {
-    fontFamily: fontFamilies.sans,
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.dark.textPrimary,
-    flex: 1,
-    marginRight: spacing.xs,
-  },
-  bulletDesc: {
-    fontFamily: fontFamilies.sans,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.dark.textSecondary,
-  },
-  disclaimerCard: {
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    borderColor: 'rgba(245, 158, 11, 0.25)',
-    borderWidth: 1,
-    marginBottom: spacing.md,
-    padding: spacing.md,
-  },
-  disclaimerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: 6,
-  },
-  disclaimerIcon: {
-    fontSize: 18,
-  },
-  disclaimerTitle: {
-    fontFamily: fontFamilies.sans,
+  skipText: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.accentGold,
   },
-  disclaimerBody: {
-    fontFamily: fontFamilies.sans,
-    fontSize: 13,
-    lineHeight: 18,
-    color: colors.dark.textSecondary,
-  },
-  footerBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.dark.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.dark.surfaceBorder,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  footerInner: {
+  carouselScrollView: {
+    flex: 1,
     width: '100%',
-    maxWidth: 620,
+  },
+  carouselContentContainer: {
+    alignItems: 'center',
+  },
+  slidePage: {
+    paddingHorizontal: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+  heroIllustrationContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 8,
+  },
+  illustrationCard: {
+    width: '100%',
+    height: 205,
+    borderRadius: 20,
+    overflow: 'hidden',
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  illustrationImage: {
+    width: '100%',
+    height: '100%',
+  },
+  copyContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    marginTop: 8,
+  },
+  slideBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  slideBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  headline: {
+    fontSize: 24,
+    fontWeight: '800',
+    textAlign: 'center',
+    lineHeight: 31,
+    marginBottom: 6,
+    letterSpacing: -0.4,
+  },
+  subheadline: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
+    paddingHorizontal: 8,
+  },
+  actionsContainer: {
+    width: '100%',
+    paddingHorizontal: 28,
+    alignItems: 'center',
+  },
+  paginationDotsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 14,
+    paddingVertical: 4,
   },
-  backButton: {
-    flex: 1,
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  backButtonPlaceholder: {
-    flex: 1,
+  dotActive: {
+    width: 22,
+    borderRadius: 4,
   },
-  primaryActionButton: {
-    flex: 2,
+  ctaButton: {
+    width: '100%',
+    minHeight: 52,
+  },
+  signInButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  signInText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  signInHighlight: {
+    fontWeight: '700',
   },
 });

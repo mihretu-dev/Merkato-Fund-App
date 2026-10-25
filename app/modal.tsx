@@ -1,22 +1,60 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, StyleSheet, ScrollView, View, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/tokens';
-import { Card, DemoBadge, DisclaimerNotice, AppButton } from '@/src/components/ui';
+import {
+  Card,
+  DemoBadge,
+  DisclaimerNotice,
+  AppButton,
+  MerkatoLogo,
+  BrandInfographicModal,
+  InfographicModalType,
+} from '@/src/components/ui';
 
 export default function ModalScreen() {
   const router = useRouter();
+  const [activeInfographic, setActiveInfographic] = useState<InfographicModalType | null>(null);
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Text style={styles.title}>About Merkato Fund Demo</Text>
-          <DemoBadge label="FINANCIAL PROTOTYPE" />
+          <View style={styles.headerRow}>
+            <MerkatoLogo size={48} />
+            <View style={styles.headerTitles}>
+              <Text style={styles.title}>About Merkato Fund</Text>
+              <DemoBadge label="FINANCIAL PROTOTYPE" />
+            </View>
+          </View>
         </View>
 
+        {/* Brand Mission & Visual Charter */}
         <Card style={styles.card} variant="elevated">
+          <Text style={styles.cardTitle}>📜 Brand Mission & Infographics</Text>
+          <Text style={styles.cardBody}>
+            Inspect the high-resolution brand charter and core architectural paradigms
+            governing the Merkato Fund model:
+          </Text>
+          <View style={styles.modalActionRow}>
+            <AppButton
+              title="📜 Read The Merkato Manifesto"
+              variant="primary"
+              onPress={() => setActiveInfographic('manifesto')}
+              style={{ marginBottom: spacing.xs }}
+            />
+            <AppButton
+              title="⚖️ View The Paradigm Shift (Old vs New)"
+              variant="outline"
+              onPress={() => setActiveInfographic('oldVsNew')}
+              style={{ marginBottom: spacing.xs }}
+            />
+          </View>
+        </Card>
+
+        <Card style={styles.card} variant="surface">
           <Text style={styles.cardTitle}>Purpose & Safety Policy</Text>
           <Text style={styles.cardBody}>
             This application is a demonstration prototype built with React Native and Expo Router.
@@ -52,7 +90,7 @@ export default function ModalScreen() {
           </Text>
           <View style={styles.modalActionRow}>
             <AppButton
-              title="📖 Replay 3-Slide Onboarding"
+              title="📖 Replay 4-Slide Onboarding"
               variant="outline"
               onPress={() => router.push('/onboarding')}
               style={{ marginBottom: spacing.xs }}
@@ -74,6 +112,15 @@ export default function ModalScreen() {
         <DisclaimerNotice />
       </ScrollView>
 
+      {/* Brand Infographic Modal */}
+      {activeInfographic && (
+        <BrandInfographicModal
+          visible={!!activeInfographic}
+          onClose={() => setActiveInfographic(null)}
+          type={activeInfographic}
+        />
+      )}
+
       <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
     </View>
   );
@@ -90,6 +137,14 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: spacing.lg,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  headerTitles: {
+    flex: 1,
   },
   title: {
     fontFamily: fontFamilies.sans,
@@ -118,16 +173,15 @@ const styles = StyleSheet.create({
   bulletPoint: {
     fontFamily: fontFamilies.sans,
     fontSize: typography.fontSizes.sm,
-    lineHeight: 22,
+    lineHeight: 20,
     color: colors.dark.textSecondary,
-    marginVertical: 4,
+    marginBottom: spacing.xs,
   },
   bold: {
+    fontWeight: typography.fontWeights.bold,
     color: colors.dark.textPrimary,
-    fontWeight: typography.fontWeights.semibold,
   },
   modalActionRow: {
-    marginTop: spacing.sm,
-    gap: spacing.xs,
+    marginTop: spacing.xs,
   },
 });

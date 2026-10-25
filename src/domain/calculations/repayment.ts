@@ -138,6 +138,149 @@ export function estimateRepaymentDays(
   return Math.ceil(principal / dailyRepayment);
 }
 
+export interface FullPayoffDetails {
+  /** Modeled scenario */
+  scenario: '500_plus_50' | '550_bundle';
+  /** Total principal amount (e.g. 1,000,000 ETB) */
+  totalPrincipalETB: number;
+  /** Repayment start day (Day 1 of escrow custody; Day 0 is initial lock deposit) */
+  repaymentStartDay: number;
+  /** Escrow duration in days (180 days) */
+  escrowDurationDays: number;
+  /** Daily principal repayment obligation */
+  dailyPrincipalETB: number;
+  /** Daily admin fee (separate from principal; model assumption) */
+  dailyAdminFeeETB: number;
+  /** Total daily payment due (principal + admin fee) */
+  dailyTotalDueETB: number;
+  /** Principal repaid during 180-day escrow period */
+  principalRepaidDuringEscrowETB: number;
+  /** Admin fees paid during 180-day escrow period */
+  adminFeesPaidDuringEscrowETB: number;
+  /** Remaining principal debt at Day 180 unlock */
+  remainingPrincipalAtDay180ETB: number;
+  /** Total repayment days required to extinguish principal (from Day 1) */
+  totalPayoffDays: number;
+  /** Number of days with full standard principal installments */
+  fullInstallmentDays: number;
+  /** Backward-compatible alias for fullInstallmentDays */
+  wholePaymentDays: number;
+  /** Whether the final payment requires an adjusted partial amount */
+  isFinalPaymentAdjusted: boolean;
+  /** Final adjusted payment day (equals totalPayoffDays) */
+  finalAdjustedPaymentDay: number;
+  /** Alias for finalAdjustedPaymentDay */
+  finalInstallmentDay: number;
+  /** Final day installment: principal portion (adjusted if not evenly divisible) */
+  finalInstallmentPrincipalETB: number;
+  /** Final day installment: admin fee portion */
+  finalInstallmentAdminFeeETB: number;
+  /** Final day installment: total payment */
+  finalInstallmentTotalETB: number;
+  /** Remaining days after Day 180 escrow unlock */
+  postEscrowPayoffDays: number;
+  /** Total admin fees over the entire loan duration */
+  totalAdminFeesETB: number;
+  /** Total cash paid by winner over the entire loan duration (principal + fees) */
+  totalLifetimeOutflowETB: number;
+  /** Whether this is client-side demonstration estimation only */
+  isDemonstrationOnly: true;
+}
+
+/**
+ * Calculate the complete repayment payoff timeline details for Scenario A and Scenario B.
+ *
+ * Verifies timeline consistency and boundary definitions:
+ * - Repayment begins on Day 1 (during the 180-day escrow lock period).
+ * - Scenario A: 1,000,000 ETB / 500 ETB/d = 2,000 full-installment days; 1,820 days post-Day 180;
+ *   100,000 ETB lifetime admin fees (2,000 * 50 ETB). Final payment: 500 ETB principal + 50 ETB fee.
+ * - Scenario B: 1,000,000 ETB / 550 ETB/d = 1,819 total repayment days (1,818 full-installment
+ *   days of 550 ETB + 1 final adjusted partial payment of 100 ETB on Day 1,819); 1,639 days post-Day 180;
+ *   0 ETB admin fees.
+ */
+export function calculateFullPayoffDetails(
+  scenario: '500_plus_50' | '550_bundle' = '500_plus_50',
+  config: Pick<DemoConfiguration, 'prizeAmountETB'> = DEFAULT_DEMO_CONFIG,
+  escrowDurationDays: number = 180
+): FullPayoffDetails {
+  const totalPrincipalETB = config.prizeAmountETB;
+  if (!Number.isFinite(totalPrincipalETB) || totalPrincipalETB <= 0) {
+    throw new RangeError(
+      `prizeAmountETB must be a positive finite number, got ${totalPrincipalETB}`
+    );
+  }
+  if (!Number.isFinite(escrowDurationDays) || escrowDurationDays < 0) {
+    throw new RangeError(
+      `escrowDurationDays must be a non-negative finite number, got ${escrowDurationDays}`
+    );
+  }
+
+  const dailyPrincipalETB = scenario === '550_bundle' ? 550 : 500;
+  const dailyAdminFeeETB = scenario === '550_bundle' ? 0 : 50;
+  const dailyTotalDueETB = dailyPrincipalETB + dailyAdminFeeETB;
+
+  // Repayment starts on Day 1 of escrow custody
+  const repaymentStartDay = 1;
+
+  // Escrow period calculations
+  const principalRepaidDuringEscrowETB = Math.min(
+    totalPrincipalETB,
+    escrowDurationDays * dailyPrincipalETB
+  );
+  const adminFeesPaidDuringEscrowETB = escrowDurationDays * dailyAdminFeeETB;
+  const remainingPrincipalAtDay180ETB = Math.max(
+    0,
+    totalPrincipalETB - principalRepaidDuringEscrowETB
+  );
+
+  // Total duration & full installment count vs final adjusted payment
+  const totalPayoffDays = Math.ceil(totalPrincipalETB / dailyPrincipalETB);
+  const fullInstallmentDays = Math.floor(totalPrincipalETB / dailyPrincipalETB);
+  const remainderPrincipal = totalPrincipalETB - (fullInstallmentDays * dailyPrincipalETB);
+  const isFinalPaymentAdjusted = remainderPrincipal > 0;
+
+  const finalAdjustedPaymentDay = totalPayoffDays;
+  const finalInstallmentPrincipalETB =
+    remainderPrincipal === 0 ? dailyPrincipalETB : remainderPrincipal;
+  // Admin fee on the final payment day: full daily admin fee applies per billing day
+  const finalInstallmentAdminFeeETB = dailyAdminFeeETB;
+  const finalInstallmentTotalETB =
+    finalInstallmentPrincipalETB + finalInstallmentAdminFeeETB;
+
+  // Post-escrow remaining days
+  const postEscrowPayoffDays = Math.max(0, totalPayoffDays - escrowDurationDays);
+
+  // Total lifetime admin fees and total cash outflow
+  const totalAdminFeesETB = totalPayoffDays * dailyAdminFeeETB;
+  const totalLifetimeOutflowETB = totalPrincipalETB + totalAdminFeesETB;
+
+  return {
+    scenario,
+    totalPrincipalETB,
+    repaymentStartDay,
+    escrowDurationDays,
+    dailyPrincipalETB,
+    dailyAdminFeeETB,
+    dailyTotalDueETB,
+    principalRepaidDuringEscrowETB,
+    adminFeesPaidDuringEscrowETB,
+    remainingPrincipalAtDay180ETB,
+    totalPayoffDays,
+    fullInstallmentDays,
+    wholePaymentDays: fullInstallmentDays,
+    isFinalPaymentAdjusted,
+    finalAdjustedPaymentDay,
+    finalInstallmentDay: finalAdjustedPaymentDay,
+    finalInstallmentPrincipalETB,
+    finalInstallmentAdminFeeETB,
+    finalInstallmentTotalETB,
+    postEscrowPayoffDays,
+    totalAdminFeesETB,
+    totalLifetimeOutflowETB,
+    isDemonstrationOnly: true,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Buffer calculations
 // ---------------------------------------------------------------------------

@@ -139,10 +139,16 @@ export const useDrawStore = create<DrawState>((set, get) => ({
   },
 
   addUserTicket: (ticket: DrawTicket) => {
-    set((state) => ({
-      userTickets: [ticket, ...state.userTickets],
-      eligibleDrawTickets: [ticket, ...state.eligibleDrawTickets],
-    }));
+    set((state) => {
+      const alreadyHasUserTicket = state.userTickets.some((t) => t.id === ticket.id);
+      const alreadyHasEligibleTicket = state.eligibleDrawTickets.some((t) => t.id === ticket.id);
+      return {
+        userTickets: alreadyHasUserTicket ? state.userTickets : [ticket, ...state.userTickets],
+        eligibleDrawTickets: alreadyHasEligibleTicket
+          ? state.eligibleDrawTickets
+          : [ticket, ...state.eligibleDrawTickets],
+      };
+    });
   },
 
   resetDrawStore: () => {

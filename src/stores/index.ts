@@ -9,12 +9,15 @@ import { useWinnerStore } from './useWinnerStore';
 import { useDemoConfigStore } from './useDemoConfigStore';
 import { mockMerkatoService } from '@/src/services/mock/MockMerkatoService';
 
+import { useLanguageStore } from './useLanguageStore';
+
 export {
   useUserStore,
   useContributionStore,
   useDrawStore,
   useWinnerStore,
   useDemoConfigStore,
+  useLanguageStore,
 };
 
 /**

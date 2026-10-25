@@ -1,13 +1,13 @@
 /**
  * Merkato Fund — Demo Persona Selection Screen
+ * Redesigned for Phase 10: Clean, focused card selector matching Screen 2 in design reference.
  *
- * Dedicated entry point allowing reviewers to choose between 3 synthetic personas:
- * 1. Dawit Haile (Member / Contributor)
- * 2. Bethlehem Tadesse (Winner / 6-Month Blocked Escrow)
- * 3. Abebe Kebede (Admin / Pool Auditor)
+ * Allows reviewers to choose between 3 synthetic personas:
+ * 1. Member (Dawit Haile) — Save, contribute, win
+ * 2. Winner (Bethlehem Tadesse) — View your winnings
+ * 3. Administrator (Abebe Kebede) — Manage and analyze
  *
- * Each card explains what portion of the prototype it opens.
- * Selecting a persona re-hydrates all Zustand stores and routes to the Member Dashboard.
+ * Supports complete English and Amharic localization.
  */
 
 import React, { useState } from 'react';
@@ -17,105 +17,70 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing, typography, radii, fontFamilies } from '@/src/theme/tokens';
-import { Card, AppButton, DemoBadge, DisclaimerNotice, StatusPill } from '@/src/components/ui';
+
+import { useTheme } from '@/src/theme/useTheme';
+import { AppButton, DisclaimerNotice, MerkatoLogo } from '@/src/components/ui';
 import { useUserStore } from '@/src/stores/useUserStore';
 import { DemoPersonaId } from '@/src/domain/types';
+import { useTranslation } from '@/src/i18n/useTranslation';
 
-interface PersonaOption {
+interface PersonaCardItem {
   id: DemoPersonaId;
-  name: string;
-  amharicName: string;
-  role: 'member' | 'winner' | 'admin';
-  roleLabel: string;
-  occupation: string;
-  location: string;
-  phone: string;
-  highlightTag: string;
-  summary: string;
-  keyFeatures: string[];
-  initialRouteTitle: string;
-  themeColor: string;
-  bgTint: string;
+  titleKey: 'memberTitle' | 'winnerTitle' | 'adminTitle';
+  subtitleKey: 'memberSubtitle' | 'winnerSubtitle' | 'adminSubtitle';
+  personName: string;
+  icon: string;
+  iconBgColorDark: string;
+  iconBgColorLight: string;
+  iconColor: string;
 }
 
-const PERSONA_OPTIONS: PersonaOption[] = [
+const PERSONA_ITEMS: PersonaCardItem[] = [
   {
     id: 'dawit',
-    name: 'Dawit Haile',
-    amharicName: 'ዳዊት ኃይሌ',
-    role: 'member',
-    roleLabel: 'PRE-WIN MEMBER',
-    occupation: 'Electronics Importer & Retailer',
-    location: 'Merkato, Addis Ababa',
-    phone: '+251 91 123 4567',
-    highlightTag: 'PRIMARY DEMO FLOW',
-    summary: 'Experience the daily micro-contribution journey from a standard active participant perspective.',
-    keyFeatures: [
-      'Daily 50 ETB contribution checkout (Telebirr & CBE)',
-      '14-day continuous streak tracking',
-      'Tonight’s algorithmic draw ticket issuance',
-      'Draw countdown & simulated participant pool',
-    ],
-    initialRouteTitle: 'Launch Member Dashboard →',
-    themeColor: colors.primaryLight,
-    bgTint: '#0B201A',
+    titleKey: 'memberTitle',
+    subtitleKey: 'memberSubtitle',
+    personName: 'Dawit Haile',
+    icon: '👤',
+    iconBgColorDark: 'rgba(16, 185, 129, 0.15)',
+    iconBgColorLight: 'rgba(16, 185, 129, 0.12)',
+    iconColor: '#10B981',
   },
   {
     id: 'bethlehem',
-    name: 'Bethlehem Tadesse',
-    amharicName: 'ቤተልሔም ታደሰ',
-    role: 'winner',
-    roleLabel: 'ESCROW WINNER (DAY 45)',
-    occupation: 'Specialty Coffee Exporter',
-    location: 'Bole Sub-City, Addis Ababa',
-    phone: '+251 92 345 6789',
-    highlightTag: 'WINNER EXPERIENCE',
-    summary: 'Evaluate the financial mechanics of the 1,000,000 ETB payout held in a 6-month blocked escrow account.',
-    keyFeatures: [
-      '1,000,000 ETB CBE escrow blocked account view',
-      'Daily 602.74 ETB interest accrual counter (22% p.a.)',
-      '500 ETB principal + 50 ETB fee daily repayment schedule',
-      '7,500 ETB winner buffer with 15-day replenishment',
-    ],
-    initialRouteTitle: 'Inspect Winner Escrow Hub →',
-    themeColor: colors.accentGold,
-    bgTint: '#1E170A',
+    titleKey: 'winnerTitle',
+    subtitleKey: 'winnerSubtitle',
+    personName: 'Bethlehem Tadesse',
+    icon: '🏆',
+    iconBgColorDark: 'rgba(245, 158, 11, 0.15)',
+    iconBgColorLight: 'rgba(245, 158, 11, 0.12)',
+    iconColor: '#F59E0B',
   },
   {
     id: 'admin',
-    name: 'Abebe Kebede',
-    amharicName: 'አበበ ከበደ',
-    role: 'admin',
-    roleLabel: 'COMPLIANCE AUDITOR',
-    occupation: 'Risk Analyst & Regulatory Auditor',
-    location: 'Addis Ababa Financial Center',
-    phone: '+251 93 456 7890',
-    highlightTag: 'SYSTEM & POOL AUDIT',
-    summary: 'Audit pool feasibility assumptions, the 20,000-member scale floor, and algorithmic draw verification logs.',
-    keyFeatures: [
-      'Synthetic pool feasibility model (24,850 participants)',
-      '1,242,500 ETB gross daily inflow vs 1M prize allocation',
-      '20,000-member floor scale sensitivity stress-testing',
-      'Demonstration draw hash logs & seed verification',
-    ],
-    initialRouteTitle: 'Open Compliance & Pool Audit →',
-    themeColor: colors.telebirr,
-    bgTint: '#0F172A',
+    titleKey: 'adminTitle',
+    subtitleKey: 'adminSubtitle',
+    personName: 'Abebe Kebede',
+    icon: '🛡️',
+    iconBgColorDark: 'rgba(59, 130, 246, 0.15)',
+    iconBgColorLight: 'rgba(59, 130, 246, 0.12)',
+    iconColor: '#3B82F6',
   },
 ];
 
 export default function PersonaSelectScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { theme, isDark } = useTheme();
+  const { t, format, language, setLanguage } = useTranslation();
+
   const currentPersonaId = useUserStore((s) => s.currentPersonaId);
   const switchPersona = useUserStore((s) => s.switchPersona);
   const isLoading = useUserStore((s) => s.isLoading);
   const setHasCompletedOnboarding = useUserStore((s) => s.setHasCompletedOnboarding);
-  const insets = useSafeAreaInsets();
 
   const [selectedId, setSelectedId] = useState<DemoPersonaId>(currentPersonaId);
 
@@ -143,168 +108,122 @@ export default function PersonaSelectScreen() {
     }
   };
 
-  const handleReplayOnboarding = () => {
-    router.push('/onboarding');
-  };
+  const selectedPersonaItem = PERSONA_ITEMS.find((p) => p.id === selectedId) || PERSONA_ITEMS[0];
 
   return (
-    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: Math.max(insets.bottom, 16) + spacing.xl },
-        ]}
-        showsVerticalScrollIndicator={false}>
-        <View style={styles.container}>
-          {/* Top Bar */}
-          <View style={styles.topBar}>
-            <View>
-              <Text style={styles.screenAmharic}>የግምገማ መገለጫ ይምረጡ</Text>
-              <Text style={styles.screenTitle}>Select Demo Persona</Text>
-            </View>
-            <DemoBadge label="EVALUATION SELECTOR" />
-          </View>
+    <View style={[styles.screen, { backgroundColor: theme.background, paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 24) }]}>
+      {/* 1. Header with Back Arrow, Brand Logo, and Quick Language Switcher */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.replace('/onboarding')}
+          accessibilityRole="button"
+          accessibilityLabel="Back to onboarding">
+          <Text style={[styles.backIcon, { color: theme.textPrimary }]}>‹</Text>
+        </TouchableOpacity>
 
-          <Text style={styles.screenSubtitle}>
-            Merkato Fund is a multi-sided ecosystem prototype. Choose a synthetic persona below to test its corresponding role and financial view.
+        <MerkatoLogo size={34} />
+
+        <TouchableOpacity
+          style={[styles.langPill, { backgroundColor: isDark ? '#1E293B' : '#E2E8F0', borderColor: theme.surfaceBorder }]}
+          onPress={() => setLanguage(language === 'en' ? 'am' : 'en')}
+          accessibilityRole="button"
+          accessibilityLabel="Switch language">
+          <Text style={[styles.langPillText, { color: theme.textPrimary }]}>
+            {language === 'en' ? 'አማርኛ 🇪🇹' : 'English 🇬🇧'}
           </Text>
+        </TouchableOpacity>
+      </View>
 
-          {/* Persona Cards List */}
-          <View style={styles.cardsList}>
-            {PERSONA_OPTIONS.map((persona) => {
-              const isSelected = selectedId === persona.id;
-              const isCurrentlyLoaded = currentPersonaId === persona.id;
+      {/* 2. Title & Subtitle */}
+      <View style={styles.titleSection}>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t.persona.title}</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+          {t.persona.subtitle}
+        </Text>
+      </View>
 
-              return (
-                <TouchableOpacity
-                  key={persona.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Select ${persona.name}, role ${persona.roleLabel}`}
-                  accessibilityState={{ selected: isSelected }}
-                  activeOpacity={0.85}
-                  onPress={() => handleSelect(persona.id)}
+      {/* 3. Persona Cards List */}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.cardsContainer}>
+          {PERSONA_ITEMS.map((item) => {
+            const isSelected = selectedId === item.id;
+            const title = t.persona[item.titleKey];
+            const subtitle = t.persona[item.subtitleKey];
+
+            return (
+              <TouchableOpacity
+                key={item.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${title} persona, ${subtitle}`}
+                accessibilityState={{ selected: isSelected }}
+                activeOpacity={0.85}
+                onPress={() => handleSelect(item.id)}
+                style={[
+                  styles.card,
+                  {
+                    backgroundColor: theme.surface,
+                    borderColor: isSelected ? theme.primary : theme.surfaceBorder,
+                    borderWidth: isSelected ? 2 : 1,
+                  },
+                ]}>
+                {/* Left: Avatar Circle */}
+                <View
                   style={[
-                    styles.personaCard,
-                    { backgroundColor: persona.bgTint },
-                    isSelected && { borderColor: persona.themeColor, borderWidth: 2 },
+                    styles.avatarCircle,
+                    {
+                      backgroundColor: isDark ? item.iconBgColorDark : item.iconBgColorLight,
+                    },
                   ]}>
-                  {/* Card Header */}
-                  <View style={styles.cardHeader}>
-                    <View style={styles.avatar}>
-                      <Text style={[styles.avatarText, { color: persona.themeColor }]}>
-                        {persona.name
-                          .split(' ')
-                          .map((n) => n[0])
-                          .join('')}
-                      </Text>
-                    </View>
+                  <Text style={styles.avatarEmoji}>{item.icon}</Text>
+                </View>
 
-                    <View style={styles.headerMeta}>
-                      <View style={styles.titleRow}>
-                        <Text style={styles.personaName}>{persona.name}</Text>
-                        <StatusPill
-                          status={
-                            persona.role === 'winner'
-                              ? 'caution'
-                              : persona.role === 'admin'
-                              ? 'info'
-                              : 'healthy'
-                          }
-                          label={persona.roleLabel}
-                          size="small"
-                        />
-                      </View>
-                      <Text style={styles.personaOccupation}>{persona.occupation}</Text>
-                      <Text style={styles.personaLocation}>📍 {persona.location}</Text>
-                    </View>
+                {/* Center: Title, Person Name & Subtitle */}
+                <View style={styles.cardContent}>
+                  <View style={styles.nameRow}>
+                    <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>
+                      {title}
+                    </Text>
+                    <Text style={[styles.cardPersonName, { color: theme.textMuted }]}>
+                      • {item.personName}
+                    </Text>
                   </View>
+                  <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
+                    {subtitle}
+                  </Text>
+                </View>
 
-                  {/* Summary */}
-                  <Text style={styles.personaSummary}>{persona.summary}</Text>
-
-                  {/* Features Bullet List */}
-                  <View style={styles.featureBox}>
-                    <Text style={styles.featureTitle}>DEMONSTRATION SCOPE:</Text>
-                    {persona.keyFeatures.map((feat, idx) => (
-                      <View key={idx} style={styles.featureRow}>
-                        <Text style={[styles.featureBullet, { color: persona.themeColor }]}>•</Text>
-                        <Text style={styles.featureText}>{feat}</Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  {/* Selection Indicator Footer */}
-                  <View style={styles.cardFooter}>
-                    <View style={styles.selectionStateRow}>
-                      <View
-                        style={[
-                          styles.radioCircle,
-                          isSelected && { borderColor: persona.themeColor },
-                        ]}>
-                        {isSelected && (
-                          <View
-                            style={[
-                              styles.radioDot,
-                              { backgroundColor: persona.themeColor },
-                            ]}
-                          />
-                        )}
-                      </View>
-                      <Text
-                        style={[
-                          styles.selectionLabel,
-                          isSelected && { color: persona.themeColor, fontWeight: '700' },
-                        ]}>
-                        {isSelected ? 'SELECTED FOR EVALUATION' : 'Tap to Select Persona'}
-                      </Text>
-                    </View>
-
-                    {isCurrentlyLoaded && (
-                      <StatusPill status="info" label="STATE HYDRATED" size="small" />
-                    )}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Action Footer */}
-          <View style={styles.actionContainer}>
-            <AppButton
-              title={
-                isLoading
-                  ? 'Hydrating Persona State...'
-                  : PERSONA_OPTIONS.find((p) => p.id === selectedId)?.initialRouteTitle || 'Launch Dashboard →'
-              }
-              variant="primary"
-              disabled={isLoading}
-              onPress={handleProceed}
-              fullWidth
-            />
-
-            <View style={styles.secondaryActionsRow}>
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Replay onboarding walkthrough"
-                onPress={handleReplayOnboarding}
-                style={styles.secondaryButton}>
-                <Text style={styles.secondaryButtonText}>📖 Replay Onboarding Walkthrough</Text>
+                {/* Right: Radio Selection Indicator */}
+                <View
+                  style={[
+                    styles.radioRing,
+                    {
+                      borderColor: isSelected ? theme.primary : (isDark ? '#334155' : '#CBD5E1'),
+                      backgroundColor: isSelected ? theme.primary : 'transparent',
+                    },
+                  ]}>
+                  {isSelected && <View style={styles.radioInnerDot} />}
+                </View>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Open Developer Verification Harness"
-                onPress={() => router.push('/(tabs)/verify')}
-                style={styles.secondaryButton}>
-                <Text style={styles.secondaryButtonText}>🛠️ State Verification</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Mandatory Disclaimer */}
-          <DisclaimerNotice />
+            );
+          })}
         </View>
+
+        <DisclaimerNotice compact message={t.persona.noticeText} />
       </ScrollView>
+
+      {/* 4. Action Button */}
+      <View style={styles.bottomActionContainer}>
+        <AppButton
+          title={isLoading ? t.common.loading : format(t.persona.continueAs, { name: t.persona[selectedPersonaItem.titleKey] })}
+          variant="primary"
+          disabled={isLoading}
+          onPress={handleProceed}
+          style={styles.continueButton}
+        />
+      </View>
     </View>
   );
 }
@@ -312,200 +231,116 @@ export default function PersonaSelectScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.dark.background,
+    paddingHorizontal: 24,
   },
-  scrollContent: {
-    padding: spacing.md,
-    paddingBottom: spacing.huge,
-    alignItems: 'center',
-  },
-  container: {
-    width: '100%',
-    maxWidth: 620,
-  },
-  topBar: {
+  header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
+    height: 44,
   },
-  screenAmharic: {
-    ...typography.caption,
-    color: colors.accentGold,
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  screenTitle: {
-    ...typography.h1,
-    fontSize: 24,
-    color: colors.dark.textPrimary,
-  },
-  screenSubtitle: {
-    ...typography.bodySmall,
-    color: colors.dark.textSecondary,
-    lineHeight: 18,
-    marginBottom: spacing.lg,
-  },
-  cardsList: {
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  personaCard: {
-    borderRadius: radii.lg,
-    borderWidth: 1.5,
-    borderColor: colors.dark.surfaceBorder,
-    padding: spacing.md,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  avatar: {
+  backButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.dark.surfaceElevated,
-    alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
-    borderWidth: 1.5,
-    borderColor: colors.dark.surfaceBorder,
+    alignItems: 'flex-start',
   },
-  avatarText: {
-    ...typography.h3,
-    fontSize: 16,
-    fontWeight: '700',
+  backIcon: {
+    fontSize: 32,
+    fontWeight: '300',
+    lineHeight: 34,
   },
-  headerMeta: {
-    flex: 1,
+  langPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  personaName: {
-    ...typography.h3,
-    fontFamily: fontFamilies.sans,
-    fontSize: 17,
-    fontWeight: '700',
-    color: colors.dark.textPrimary,
-  },
-  personaOccupation: {
-    ...typography.bodySmall,
-    fontFamily: fontFamilies.sans,
-    fontSize: 13,
-    color: colors.dark.textSecondary,
-  },
-  personaLocation: {
-    ...typography.caption,
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textMuted,
+  langPillText: {
     fontSize: 12,
-    marginTop: 2,
+    fontWeight: '700',
   },
-  personaSummary: {
-    ...typography.bodySmall,
-    fontFamily: fontFamilies.sans,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.dark.textSecondary,
-    marginBottom: spacing.sm,
+  titleSection: {
+    marginTop: 12,
+    marginBottom: 20,
   },
-  featureBox: {
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    borderRadius: radii.md,
-    padding: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  featureTitle: {
-    ...typography.label,
-    fontFamily: fontFamilies.sans,
-    fontSize: 11,
-    color: colors.dark.textMuted,
-    letterSpacing: 0.8,
+  title: {
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.4,
     marginBottom: 6,
   },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 4,
-  },
-  featureBullet: {
+  subtitle: {
     fontSize: 14,
-    lineHeight: 18,
-    marginRight: 6,
+    lineHeight: 21,
   },
-  featureText: {
-    ...typography.caption,
-    fontFamily: fontFamilies.sans,
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
+  cardsContainer: {
+    gap: 14,
+    marginBottom: 20,
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  avatarCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  avatarEmoji: {
+    fontSize: 22,
+  },
+  cardContent: {
+    flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+    marginBottom: 3,
+  },
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  cardPersonName: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  cardSubtitle: {
     fontSize: 13,
     lineHeight: 18,
-    color: colors.dark.textSecondary,
-    flex: 1,
   },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  selectionStateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  radioRing: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.dark.textMuted,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 12,
   },
-  radioDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  radioInnerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
   },
-  selectionLabel: {
-    ...typography.caption,
-    fontFamily: fontFamilies.sans,
-    fontSize: 12,
-    color: colors.dark.textMuted,
+  bottomActionContainer: {
+    paddingTop: 8,
   },
-  actionContainer: {
-    marginBottom: spacing.md,
-  },
-  secondaryActionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.sm,
-    gap: spacing.sm,
-  },
-  secondaryButton: {
-    flex: 1,
-    minHeight: 48,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: radii.md,
-    backgroundColor: colors.dark.surfaceElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.dark.surfaceBorder,
-  },
-  secondaryButtonText: {
-    ...typography.caption,
-    fontFamily: fontFamilies.sans,
-    color: colors.dark.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
+  continueButton: {
+    width: '100%',
+    minHeight: 52,
   },
 });
